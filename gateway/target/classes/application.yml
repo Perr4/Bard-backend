@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/api/auth/**
+            - id: learning-service
+              uri: lb://LEARNING-SERVICE
+              predicates:
+                - Path=/api/learning/**
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins: ${CHRONOS_FRONTEND_ORIGIN:http://localhost:4200}
+                allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+                allowed-headers: '*'
+                exposed-headers: Authorization
+                allow-credentials: true
+
+chronos:
+  security:
+      jwt-secret: ${CHRONOS_JWT_SECRET:chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
