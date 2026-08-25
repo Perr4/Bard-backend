@@ -4,18 +4,18 @@ spring:
 
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://172.21.1.33:5569/lab-mi?schema=chronos}
-    username: ${DB_USERNAME:laboratorio}
-    password: ${DB_PASSWORD:laboratorio}
+    url: ${DB_URL:jdbc:postgresql://192.168.1.22/postgres}
+    schema: bard
+    username: ${DB_USERNAME:bard}
+    password: ${DB_PASSWORD:0000}
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-#        default_schema: chronos
         format_sql: true
     open-in-view: false
 eureka:
