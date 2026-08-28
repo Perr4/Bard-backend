@@ -1,34 +1,54 @@
 package io.bard.learning_service.service;
 
 import io.bard.learning_service.dto.BallerinoCreate;
+import io.bard.learning_service.dto.BallerinoDto;
+import io.bard.learning_service.model.Ballerino;
 import io.bard.learning_service.repository.BalleriniRepo;
 import io.bard.learning_service.repository.PresenzaRepo;
+import jakarta.persistence.EntityNotFoundException;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class BallerinoService {
+    private final ModelMapper mapper;
+    private final BalleriniRepo ballRepo;
+    private final PresenzaRepo presRepo;
 
-    private final BalleriniRepo repoBallerini;
-    private final PresenzaRepo repoPresenza;
-
-    BallerinoService(BalleriniRepo repoBallerini,PresenzaRepo repoPresenza){
-      this.repoBallerini = repoBallerini;
-      this.repoPresenza = repoPresenza;
+    BallerinoService(BalleriniRepo repoBallerini,PresenzaRepo repoPresenza,ModelMapper mapper){
+      this.ballRepo = repoBallerini;
+      this.presRepo = repoPresenza;
+      this.mapper = mapper;
     }
-
-    public void createBallerino(BallerinoCreate create){
-
+    @Transactional
+    public BallerinoDto createBallerino(BallerinoCreate create){
+        Ballerino ball = mapper.map(create,Ballerino.class);
+        return mapper.map( ballRepo.save(ball),BallerinoDto.class);
+    }
+    public List<BallerinoDto> getAllBallerini(){
+        return ballRepo.findAll()
+                .stream()
+                .map(item->
+                        mapper.map(item,BallerinoDto.class))
+                .toList();
     }
     public void getBallerino(){
 
     }
-    public void getAllBallerini(){
+    @Transactional
+    public BallerinoDto deleteBallerino(UUID uuid){
+            Ballerino entity = ballRepo.findById(uuid).orElseThrow(
+                    EntityNotFoundException::new
+            );
+            ballRepo.deleteById(entity.getId());
 
+        return mapper.map(entity,BallerinoDto.class);
     }
-    public void deleteBallerino(){
-
-    }
-    public void modificaBallerino(){
-
+    public BallerinoDto modificaBallerino(BallerinoDto updateEntity){
+    return null;
     }
 }
