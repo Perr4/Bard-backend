@@ -20,17 +20,19 @@ import java.util.UUID;
 public class Ballerino {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "ballerino_id")
     private UUID id;
     private String nome;
     private String cognome;
     private Integer eta;
     private Date dataNascita;
+
     @Enumerated(EnumType.STRING)
     private Sezione sezione;
     private String sesso;
 
-    @OneToMany
-    @JoinColumn(name = "id",referencedColumnName = "id")
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "ballerino_id",referencedColumnName = "ballerino_id")
     private List<Presenza> presenze;
 }
 

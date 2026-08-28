@@ -17,11 +17,12 @@ import java.util.UUID;
 public class BallerinoService {
     private final ModelMapper mapper;
     private final BalleriniRepo ballRepo;
-    private final PresenzaRepo presRepo;
 
-    BallerinoService(BalleriniRepo repoBallerini,PresenzaRepo repoPresenza,ModelMapper mapper){
+
+    //TODO aggiunger findById e Update
+
+    BallerinoService(BalleriniRepo repoBallerini,ModelMapper mapper){
       this.ballRepo = repoBallerini;
-      this.presRepo = repoPresenza;
       this.mapper = mapper;
     }
     @Transactional
