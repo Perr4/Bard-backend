@@ -5,6 +5,7 @@ import io.bard.presenza_service.model.Presenza;
 
 import io.bard.presenza_service.repo.PresenzaRepo;
 import jakarta.persistence.EntityNotFoundException;
+import org.aspectj.asm.IModelFilter;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,24 +29,23 @@ public class PresenzaService {
        repo.save(ent);
         return mapper.map(ent,PresenzaDto.class);
     }
+
     public List<PresenzaDto> getAllbyBallerinoId(UUID id){
         return repo.findAllByBallerinoId(id).stream().map(item->
                 mapper.map(item, PresenzaDto.class)).toList(); }
 
-    public void getBallerino(){
 
-    }
     @Transactional
     public PresenzaDto deletePresenza(UUID uuid){
         Presenza entity = repo.findById(uuid).orElseThrow(
-                EntityNotFoundException::new
-        );
-        repo.deleteById(entity.getId());
-
+                EntityNotFoundException::new);
+        repo.deleteById(uuid);
         return mapper.map(entity,PresenzaDto.class);
     }
+    @Transactional
     public PresenzaDto modificaPresenza(PresenzaDto updateEntity){
-        return null;
+        Presenza entity = mapper.map(updateEntity, Presenza.class);
+        return mapper.map(repo.save(entity), PresenzaDto.class);
     }
 
 
