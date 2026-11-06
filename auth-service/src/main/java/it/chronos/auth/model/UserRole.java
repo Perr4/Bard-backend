@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "auth_roles", schema = "chronos")
+@Table(name = "auth_roles")
 public class UserRole {
 
     @Id

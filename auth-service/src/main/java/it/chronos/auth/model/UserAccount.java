@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "auth_users", schema = "chronos")
+@Table(name = "auth_users")
 public class UserAccount {
 
     @Id
@@ -46,7 +46,6 @@ public class UserAccount {
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "auth_user_roles",
-            schema = "chronos",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )

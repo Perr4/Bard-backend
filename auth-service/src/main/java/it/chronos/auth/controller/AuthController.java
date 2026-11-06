@@ -6,16 +6,20 @@ import it.chronos.auth.dto.AuthDtos.RegisterRequest;
 import it.chronos.auth.dto.AuthDtos.UserProfile;
 import it.chronos.auth.model.UserAccount;
 import it.chronos.auth.model.UserRole;
-import it.chronos.auth.kafka.UserRegisteredEventPublisher;
+
 import it.chronos.auth.repository.UserAccountRepository;
 import it.chronos.auth.repository.UserRoleRepository;
 import it.chronos.auth.security.JwtService;
+import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,26 +40,35 @@ public class AuthController {
     private final UserAccountRepository userRepository;
     private final UserRoleRepository roleRepository;
     private final JwtService jwtService;
-    private final UserRegisteredEventPublisher eventPublisher;
+   // private final UserRegisteredEventPublisher eventPublisher;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             PasswordEncoder passwordEncoder,
             UserAccountRepository userRepository,
             UserRoleRepository roleRepository,
-            JwtService jwtService,
-            UserRegisteredEventPublisher eventPublisher) {
+            JwtService jwtService
+         //   UserRegisteredEventPublisher eventPublisher
+    ) {
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jwtService = jwtService;
-        this.eventPublisher = eventPublisher;
+       // this.eventPublisher = eventPublisher;
+    }
+
+    @PostMapping("/token")
+    public ResponseEntity<?> checkToken(){
+        return ResponseEntity.ok(Map.of(
+                "valid",true
+
+        ));
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse register(@RequestBody RegisterRequest request) {
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
@@ -76,7 +89,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody LoginRequest request) {
+    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
         UserAccount user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
