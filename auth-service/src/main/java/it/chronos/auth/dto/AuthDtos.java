@@ -85,4 +85,18 @@ public final class AuthDtos {
             /** Ruoli assegnati all'utente. */
             List<String> roles) {
     }
+
+    /**
+     * Anagrafica di un utente, letta dal servizio interno (ballerini-service).
+     */
+    public record UserAnagrafica(
+            /** ID utente assegnato dal sistema. */
+            UUID userId,
+            /** Nome dell'utente. */
+            String firstName,
+            /** Cognome dell'utente. */
+            String lastName,
+            /** Data di nascita dell'utente. */
+            java.sql.Date dataNascita) {
+    }
 }

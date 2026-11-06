@@ -35,6 +35,9 @@ public class UserAccount {
     @Column(nullable = false, length = 100)
     private String lastName;
 
+    @Column(name = "data_nascita")
+    private java.sql.Date dataNascita;
+
     @Column(nullable = false)
     private boolean enabled = true;
 
@@ -85,6 +88,14 @@ public class UserAccount {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public java.sql.Date getDataNascita() {
+        return dataNascita;
+    }
+
+    public void setDataNascita(java.sql.Date dataNascita) {
+        this.dataNascita = dataNascita;
     }
 
     public String getFullName() {

@@ -3,6 +3,7 @@ package it.chronos.auth.controller;
 import it.chronos.auth.dto.AuthDtos.AuthResponse;
 import it.chronos.auth.dto.AuthDtos.LoginRequest;
 import it.chronos.auth.dto.AuthDtos.RegisterRequest;
+import it.chronos.auth.dto.AuthDtos.UserAnagrafica;
 import it.chronos.auth.dto.AuthDtos.UserProfile;
 import it.chronos.auth.model.UserAccount;
 import it.chronos.auth.model.UserRole;
@@ -15,6 +16,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +24,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -101,6 +104,20 @@ public class AuthController {
         UserAccount user = userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return new UserProfile(user.getId(), user.getEmail(), user.getFullName(), roleNames(user));
+    }
+
+    /**
+     * Anagrafica di un utente, letta dai servizi interni (ballerini-service).
+     *
+     * <p>Endpoint interno: non richiede autenticazione, e' chiamato solo dalla
+     * rete interna ({@code /api/auth/internal/**} è permitAll).</p>
+     */
+    @GetMapping("/internal/users/{id}")
+    public UserAnagrafica getAnagrafica(@PathVariable UUID id) {
+        UserAccount user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return new UserAnagrafica(
+                user.getId(), user.getFirstName(), user.getLastName(), user.getDataNascita());
     }
 
     private AuthResponse response(UserAccount user) {
