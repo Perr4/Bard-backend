@@ -3,13 +3,8 @@ package io.bard.learning_service.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.sql.Date;
 import java.util.List;
 import java.util.UUID;
-
-
-
-
 
 @Entity
 @Getter
@@ -22,10 +17,11 @@ public class Ballerino {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ballerino_id")
     private UUID id;
-    private String nome;
-    private String cognome;
+
+    @Column(name = "user_id", nullable = false, unique = true)
+    private UUID userId;
+
     private Integer eta;
-    private Date dataNascita;
 
     @Enumerated(EnumType.STRING)
     private Sezione sezione;
@@ -35,4 +31,3 @@ public class Ballerino {
     @JoinColumn(name = "ballerino_id",referencedColumnName = "ballerino_id")
     private List<Presenza> presenze;
 }
-

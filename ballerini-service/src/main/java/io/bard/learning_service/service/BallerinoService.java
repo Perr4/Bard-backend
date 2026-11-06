@@ -1,14 +1,17 @@
 package io.bard.learning_service.service;
 
+import io.bard.learning_service.config.AuthServiceClient;
+import io.bard.learning_service.config.AuthServiceClient.UserAnagrafica;
 import io.bard.learning_service.dto.BallerinoCreate;
 import io.bard.learning_service.dto.BallerinoDto;
 import io.bard.learning_service.model.Ballerino;
 import io.bard.learning_service.repository.BalleriniRepo;
-import io.bard.learning_service.repository.PresenzaRepo;
 import jakarta.persistence.EntityNotFoundException;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,24 +20,24 @@ import java.util.UUID;
 public class BallerinoService {
     private final ModelMapper mapper;
     private final BalleriniRepo ballRepo;
-
+    private final AuthServiceClient authServiceClient;
 
     //TODO aggiunger findById e Update
 
-    BallerinoService(BalleriniRepo repoBallerini,ModelMapper mapper){
+    BallerinoService(BalleriniRepo repoBallerini, ModelMapper mapper, AuthServiceClient authServiceClient) {
       this.ballRepo = repoBallerini;
       this.mapper = mapper;
+      this.authServiceClient = authServiceClient;
     }
     @Transactional
     public BallerinoDto createBallerino(BallerinoCreate create){
         Ballerino ball = mapper.map(create,Ballerino.class);
-        return mapper.map( ballRepo.save(ball),BallerinoDto.class);
+        return toDto(ballRepo.save(ball));
     }
     public List<BallerinoDto> getAllBallerini(){
         return ballRepo.findAll()
                 .stream()
-                .map(item->
-                        mapper.map(item,BallerinoDto.class))
+                .map(this::toDto)
                 .toList();
     }
     public void getBallerino(){
@@ -47,9 +50,28 @@ public class BallerinoService {
             );
             ballRepo.deleteById(entity.getId());
 
-        return mapper.map(entity,BallerinoDto.class);
+        return toDto(entity);
     }
     public BallerinoDto modificaBallerino(BallerinoDto updateEntity){
     return null;
+    }
+
+    /**
+     * Compone il DTO con i dati del ballerino piu' l'anagrafica letta da auth-service.
+     *
+     * @throws ResponseStatusException 400 se lo userId non esiste
+     */
+    private BallerinoDto toDto(Ballerino ballerino){
+        BallerinoDto dto = mapper.map(ballerino, BallerinoDto.class);
+        UserAnagrafica anagrafica = authServiceClient.findAnagrafica(ballerino.getUserId());
+        if (anagrafica == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "userId non esiste: " + ballerino.getUserId());
+        }
+        dto.setFirstName(anagrafica.firstName());
+        dto.setLastName(anagrafica.lastName());
+        dto.setDataNascita(anagrafica.dataNascita());
+        return dto;
     }
 }

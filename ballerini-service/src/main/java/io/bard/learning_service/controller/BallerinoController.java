@@ -4,6 +4,7 @@ import io.bard.learning_service.dto.BallerinoCreate;
 import io.bard.learning_service.dto.BallerinoDto;
 import io.bard.learning_service.model.Ballerino;
 import io.bard.learning_service.service.BallerinoService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -21,14 +22,11 @@ public class BallerinoController {
         this.service = serv;
     }
 
-    //AGGIUNGERE VALIDAZIONE
-
     //CRUD
 
     //C *
     @PostMapping("/ballerino")
-    public ResponseEntity<BallerinoDto> saveNewBallerino(@RequestBody BallerinoCreate create){
-          System.out.println(create);
+    public ResponseEntity<BallerinoDto> saveNewBallerino(@Valid @RequestBody BallerinoCreate create){
         return  ResponseEntity.ok(service.createBallerino(create));
     }
 

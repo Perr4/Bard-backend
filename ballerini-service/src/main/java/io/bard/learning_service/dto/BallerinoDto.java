@@ -3,7 +3,7 @@ package io.bard.learning_service.dto;
 import io.bard.learning_service.model.Sezione;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
+
 import java.sql.Date;
 import java.util.UUID;
 
@@ -12,10 +12,11 @@ import java.util.UUID;
 public class BallerinoDto {
 
     private UUID id;
-    private String nome;
-    private String cognome;
-    private Integer eta;
+    private UUID userId;
+    private String firstName;
+    private String lastName;
     private Date dataNascita;
+    private Integer eta;
     private Sezione sezione;
 
 }
