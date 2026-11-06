@@ -13,10 +13,18 @@ spring:
               uri: lb://AUTH-SERVICE
               predicates:
                 - Path=/api/auth/**
-            - id: learning-service
-              uri: lb://LEARNING-SERVICE
+
+            - id: ballerini-service
+              uri: lb://ballerini-service
               predicates:
-                - Path=/api/learning/**
+                - Path=/api/ballerino/**
+
+            - id: presenza-service
+              uri: lb://presenza-service
+              predicates:
+                - Path=/api/presenza/**
+
+
           globalcors:
             cors-configurations:
               '[/**]':
@@ -26,7 +34,7 @@ spring:
                 exposed-headers: Authorization
                 allow-credentials: true
 
-chronos:
+bard:
   security:
       jwt-secret: ${CHRONOS_JWT_SECRET:chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
 

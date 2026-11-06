@@ -1,6 +1,7 @@
 package it.chronos.gateway.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -8,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,7 +22,7 @@ public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
 
     private final SecretKey key;
 
-    public JwtAuthenticationManager(@Value("${chronos.security.jwt-secret}") String secret) {
+    public JwtAuthenticationManager(@Value("${bard.security.jwt-secret}") String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -28,6 +30,9 @@ public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
     public Mono<Authentication> authenticate(Authentication authentication) {
         return Mono.just(authentication.getCredentials().toString())
                 .map(this::parseClaims)
+                .onErrorMap(ExpiredJwtException.class, ex->
+                    new CredentialsExpiredException("jwt scaduto", ex)
+                )
                 .map(claims -> new UsernamePasswordAuthenticationToken(
                         claims.getSubject(),
                         null,
