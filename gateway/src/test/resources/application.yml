@@ -1,0 +1,17 @@
+spring:
+  cloud:
+    gateway:
+      # nessun servizio da scoprire nei test
+      discovery:
+        locator:
+          enabled: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+bard:
+  security:
+    jwt-secret: test-secret-key-must-be-at-least-512-bits-long-for-hs512-algorithm-0123456789
