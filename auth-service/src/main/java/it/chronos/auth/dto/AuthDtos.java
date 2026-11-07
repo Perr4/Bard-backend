@@ -1,5 +1,6 @@
 package it.chronos.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -87,7 +88,7 @@ public final class AuthDtos {
     }
 
     /**
-     * Anagrafica di un utente, letta dal servizio interno (ballerini-service).
+     * Anagrafica di un utente, letta dal servizio interna (ballerini-service).
      */
     public record UserAnagrafica(
             /** ID utente assegnato dal sistema. */
@@ -97,6 +98,7 @@ public final class AuthDtos {
             /** Cognome dell'utente. */
             String lastName,
             /** Data di nascita dell'utente. */
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
             java.sql.Date dataNascita) {
     }
 }

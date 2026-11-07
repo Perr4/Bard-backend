@@ -11,27 +11,21 @@
         L'Auth Service eredita direttamente dal parent di Spring Boot.
         Non cerca più un pom.xml nella cartella superiore.
     -->
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.0</version>
-        <relativePath/>
+        <parent>
+        <groupId>io.bard</groupId>
+        <artifactId>bard-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <!-- Coordinate Maven del microservizio -->
     <groupId>it.chronos</groupId>
     <artifactId>auth-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
 
     <name>auth-service</name>
     <description>Microservizio di autenticazione della piattaforma CHRONOS</description>
 
     <!-- Versioni prima ereditate dal POM generale -->
-    <properties>
-        <java.version>21</java.version>
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
-        <jjwt.version>0.12.6</jjwt.version>
-    </properties>
 
     <dependencies>
 
@@ -121,6 +115,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Test auto-config di Spring Boot 4 (MockMvc) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- H2 per i test: lo schema lo genera Hibernate dalle entita (ddl-auto=create-drop),
              sql/schema.sql resta solo riferimento per il runtime PostgreSQL -->
         <dependency>
@@ -136,17 +137,6 @@
         Serve, tra le altre cose, per stabilire la versione corretta
         del client Eureka.
     -->
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <plugins>

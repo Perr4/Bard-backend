@@ -1,0 +1,27 @@
+### IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+### Maven
+target/
+HELP.md
+.mvn/wrapper/maven-wrapper.jar
+
+### Node / frontend
+node_modules/
+dist/
+.angular/
+
+### OS
+.DS_Store
+Thumbs.db
+
+### Segreti (non committare mai)
+.gitea-token
+.env
