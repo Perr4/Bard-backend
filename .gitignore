@@ -22,6 +22,10 @@ dist/
 .DS_Store
 Thumbs.db
 
+### Strumenti locali e cache generate
+strumenti/
+graphify-out/
+
 ### Segreti (non committare mai)
 .gitea-token
 .env
