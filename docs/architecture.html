@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BARD Backend — Architettura e flusso delle informazioni</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+
+    .container { max-width: 1240px; margin: 0 auto; }
+
+    .header { margin-bottom: 2rem; }
+
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+
+    .pulse-dot {
+      width: 12px; height: 12px;
+      background: #22d3ee;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+
+    svg { width: 100%; min-width: 900px; display: block; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+    }
+
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.orange { background: #fb923c; }
+
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>BARD Backend — Architettura</h1>
+      </div>
+      <p class="subtitle">Flusso delle informazioni tra client, gateway, microservizi, Eureka e PostgreSQL</p>
+    </div>
+
+    <!-- Main Diagram -->
+    <div class="diagram-container">
+      <svg viewBox="0 0 1000 700">
+        <!-- Definitions -->
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <marker id="arrowhead-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          </marker>
+          <marker id="arrowhead-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#34d399" />
+          </marker>
+          <marker id="arrowhead-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa" />
+          </marker>
+          <marker id="arrowhead-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24" />
+          </marker>
+          <marker id="arrowhead-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" />
+          </marker>
+          <marker id="arrowhead-slate" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+          </marker>
+          <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#fb923c" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <!-- Background Grid -->
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- ============================================================= -->
+        <!-- ARROWS (drawn first so they render behind the boxes)          -->
+        <!-- ============================================================= -->
+
+        <!-- 1. Client -> Gateway : HTTPS / JSON -->
+        <line x1="165" y1="335" x2="256" y2="335" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowhead-cyan)"/>
+        <text x="210" y="327" fill="#94a3b8" font-size="9" text-anchor="middle">HTTPS / JSON</text>
+
+        <!-- 2. Gateway -> Eureka : service discovery -->
+        <line x1="330" y1="296" x2="330" y2="166" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowhead-amber)"/>
+        <text x="342" y="232" fill="#fbbf24" font-size="8">discovery</text>
+
+        <!-- 3. Gateway -> auth-service -->
+        <line x1="404" y1="318" x2="516" y2="158" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead-emerald)"/>
+        <text x="452" y="228" fill="#34d399" font-size="8">/api/auth/**</text>
+
+        <!-- 4. Gateway -> ballerini-service -->
+        <line x1="404" y1="335" x2="516" y2="315" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead-emerald)"/>
+        <text x="452" y="332" fill="#34d399" font-size="8">/api/ballerino/**</text>
+
+        <!-- 5. Gateway -> presenza-service -->
+        <line x1="404" y1="352" x2="516" y2="472" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead-emerald)"/>
+        <text x="452" y="424" fill="#34d399" font-size="8">/api/presenza/**</text>
+
+        <!-- 6. auth-service -> PostgreSQL -->
+        <line x1="664" y1="152" x2="776" y2="298" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead-violet)"/>
+
+        <!-- 7. ballerini-service -> PostgreSQL -->
+        <line x1="664" y1="315" x2="776" y2="320" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead-violet)"/>
+
+        <!-- 8. presenza-service -> PostgreSQL -->
+        <line x1="664" y1="472" x2="776" y2="358" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead-violet)"/>
+
+        <!-- 9. ballerini-service -> auth-service : anagrafica (internal REST) -->
+        <line x1="590" y1="276" x2="590" y2="196" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowhead-rose)"/>
+        <text x="602" y="240" fill="#fb7185" font-size="8">anagrafica</text>
+
+        <!-- 10. presenza-service -> OpenTelemetry -->
+        <line x1="664" y1="490" x2="776" y2="492" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrowhead-slate)"/>
+        <text x="720" y="484" fill="#94a3b8" font-size="8" text-anchor="middle">OTLP :4318</text>
+
+        <!-- 11. auth-service -> Kafka (configurato, non attivo) -->
+        <line x1="664" y1="132" x2="776" y2="120" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowhead-orange)"/>
+        <text x="720" y="112" fill="#fb923c" font-size="8" text-anchor="middle">eventi</text>
+
+        <!-- ============================================================= -->
+        <!-- COMPONENTS                                                     -->
+        <!-- ============================================================= -->
+
+        <!-- Client / Frontend -->
+        <rect x="40" y="300" width="125" height="70" fill="#0f172a"/>
+        <rect x="40" y="300" width="125" height="70" rx="6" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="102" y="326" fill="white" font-size="11" font-weight="600" text-anchor="middle">Client</text>
+        <text x="102" y="342" fill="#94a3b8" font-size="9" text-anchor="middle">Angular 21 · :4200</text>
+        <text x="102" y="357" fill="#94a3b8" font-size="8" text-anchor="middle">un solo ingresso</text>
+
+        <!-- API Gateway -->
+        <rect x="260" y="295" width="144" height="80" fill="#0f172a"/>
+        <rect x="260" y="295" width="144" height="80" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="332" y="322" fill="white" font-size="11" font-weight="600" text-anchor="middle">api-gateway</text>
+        <text x="332" y="338" fill="#94a3b8" font-size="9" text-anchor="middle">WebFlux · :8080</text>
+        <text x="332" y="354" fill="#94a3b8" font-size="8" text-anchor="middle">valida JWT · routing</text>
+
+        <!-- Eureka -->
+        <rect x="260" y="90" width="144" height="76" fill="#0f172a"/>
+        <rect x="260" y="90" width="144" height="76" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="332" y="118" fill="white" font-size="11" font-weight="600" text-anchor="middle">eureka-service</text>
+        <text x="332" y="134" fill="#94a3b8" font-size="9" text-anchor="middle">Netflix Eureka · :8761</text>
+        <text x="332" y="150" fill="#94a3b8" font-size="8" text-anchor="middle">service registry</text>
+
+        <!-- auth-service -->
+        <rect x="520" y="118" width="144" height="76" fill="#0f172a"/>
+        <rect x="520" y="118" width="144" height="76" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="592" y="146" fill="white" font-size="11" font-weight="600" text-anchor="middle">auth-service</text>
+        <text x="592" y="162" fill="#94a3b8" font-size="9" text-anchor="middle">MVC · :7999</text>
+        <text x="592" y="178" fill="#94a3b8" font-size="8" text-anchor="middle">JWT · ruoli · anagrafica</text>
+
+        <!-- ballerini-service -->
+        <rect x="520" y="276" width="144" height="76" fill="#0f172a"/>
+        <rect x="520" y="276" width="144" height="76" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="592" y="304" fill="white" font-size="11" font-weight="600" text-anchor="middle">ballerini-service</text>
+        <text x="592" y="320" fill="#94a3b8" font-size="9" text-anchor="middle">MVC · :8081</text>
+        <text x="592" y="336" fill="#94a3b8" font-size="8" text-anchor="middle">profilo ballerino</text>
+
+        <!-- presenza-service -->
+        <rect x="520" y="434" width="144" height="76" fill="#0f172a"/>
+        <rect x="520" y="434" width="144" height="76" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="592" y="462" fill="white" font-size="11" font-weight="600" text-anchor="middle">presenza-service</text>
+        <text x="592" y="478" fill="#94a3b8" font-size="9" text-anchor="middle">MVC · :8082</text>
+        <text x="592" y="494" fill="#94a3b8" font-size="8" text-anchor="middle">presenze · OTel</text>
+
+        <!-- PostgreSQL -->
+        <rect x="780" y="276" width="144" height="84" fill="#0f172a"/>
+        <rect x="780" y="276" width="144" height="84" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="852" y="306" fill="white" font-size="11" font-weight="600" text-anchor="middle">PostgreSQL</text>
+        <text x="852" y="322" fill="#94a3b8" font-size="9" text-anchor="middle">schema bard</text>
+        <text x="852" y="338" fill="#94a3b8" font-size="8" text-anchor="middle">auth_users · ballerini</text>
+        <text x="852" y="350" fill="#94a3b8" font-size="8" text-anchor="middle">presenza · auth_roles</text>
+
+        <!-- Kafka -->
+        <rect x="780" y="86" width="124" height="62" fill="#0f172a"/>
+        <rect x="780" y="86" width="124" height="62" rx="6" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="842" y="112" fill="white" font-size="11" font-weight="600" text-anchor="middle">Kafka</text>
+        <text x="842" y="128" fill="#94a3b8" font-size="9" text-anchor="middle">:9092</text>
+        <text x="842" y="140" fill="#fb923c" font-size="7" text-anchor="middle">configurato, non attivo</text>
+
+        <!-- OpenTelemetry -->
+        <rect x="780" y="460" width="144" height="62" fill="#0f172a"/>
+        <rect x="780" y="460" width="144" height="62" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="852" y="486" fill="white" font-size="11" font-weight="600" text-anchor="middle">OpenTelemetry</text>
+        <text x="852" y="502" fill="#94a3b8" font-size="9" text-anchor="middle">Collector · :4318</text>
+        <text x="852" y="514" fill="#94a3b8" font-size="8" text-anchor="middle">metriche · log · trace</text>
+
+        <!-- ============================================================= -->
+        <!-- LEGEND                                                         -->
+        <!-- ============================================================= -->
+        <text x="40" y="560" fill="white" font-size="10" font-weight="600">Legenda</text>
+
+        <rect x="40" y="574" width="16" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+        <text x="62" y="582" fill="#94a3b8" font-size="8">Client / Frontend</text>
+
+        <rect x="170" y="574" width="16" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="192" y="582" fill="#94a3b8" font-size="8">Microservizio (Spring Boot)</text>
+
+        <rect x="350" y="574" width="16" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="372" y="582" fill="#94a3b8" font-size="8">Service discovery</text>
+
+        <rect x="500" y="574" width="16" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="522" y="582" fill="#94a3b8" font-size="8">Database</text>
+
+        <rect x="620" y="574" width="16" height="10" rx="2" fill="rgba(251, 146, 60, 0.3)" stroke="#fb923c" stroke-width="1"/>
+        <text x="642" y="582" fill="#94a3b8" font-size="8">Message bus</text>
+
+        <rect x="740" y="574" width="16" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="762" y="582" fill="#94a3b8" font-size="8">Osservabilità</text>
+
+        <!-- Flow steps -->
+        <text x="40" y="614" fill="white" font-size="10" font-weight="600">Flusso di una richiesta</text>
+        <text x="40" y="632" fill="#94a3b8" font-size="8">1 · il client chiama il gateway (8080)</text>
+        <text x="40" y="646" fill="#94a3b8" font-size="8">2 · il gateway verifica il JWT (login e registrazione sono pubblici)</text>
+        <text x="40" y="660" fill="#94a3b8" font-size="8">3 · chiede a Eureka l'istanza del servizio e instrada con lb://</text>
+        <text x="40" y="674" fill="#94a3b8" font-size="8">4 · il servizio legge/scrive su PostgreSQL e risponde</text>
+        <text x="560" y="632" fill="#94a3b8" font-size="8">5 · ballerini-service compone il DTO</text>
+        <text x="560" y="646" fill="#94a3b8" font-size="8">   chiamando auth-service (anagrafica)</text>
+        <text x="560" y="660" fill="#fb923c" font-size="8">6 · auth-service pubblica eventi utente</text>
+        <text x="560" y="674" fill="#fb923c" font-size="8">   su Kafka (al momento disattivato)</text>
+      </svg>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot emerald"></div>
+          <h3>Ingresso unico</h3>
+        </div>
+        <ul>
+          <li>• api-gateway su :8080, WebFlux reattivo</li>
+          <li>• valida il Bearer JWT con chiave HMAC</li>
+          <li>• instrada con lb:// verso il servizio</li>
+          <li>• gestisce CORS per il frontend</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot amber"></div>
+          <h3>Service discovery</h3>
+        </div>
+        <ul>
+          <li>• eureka-service su :8761</li>
+          <li>• i servizi si registrano all'avvio</li>
+          <li>• il gateway risolve il nome → istanza</li>
+          <li>• nessun indirizzo fisso nel codice</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>Dati condivisi</h3>
+        </div>
+        <ul>
+          <li>• un solo PostgreSQL, schema bard</li>
+          <li>• auth_users · auth_roles · auth_user_roles</li>
+          <li>• ballerini · presenza</li>
+          <li>• ddl-auto: none / update / validate</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot rose"></div>
+          <h3>Composizione del ballerino</h3>
+        </div>
+        <ul>
+          <li>• ballerini-service → auth-service</li>
+          <li>• GET /api/auth/internal/users/{id}</li>
+          <li>• restituisce nome, cognome, dataNascita</li>
+          <li>• una chiamata per ballerino (N+1)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="footer">
+      BARD Backend · mono-repo Maven · Spring Boot 4.1.1 / Java 21 · PostgreSQL
+    </p>
+  </div>
+</body>
+</html>
