@@ -1,5 +1,7 @@
 package io.bard.learning_service.model;
 
+import io.bard.common.model.Presenza;
+import io.bard.common.model.Sezione;
 import jakarta.persistence.*;
 import lombok.*;
 

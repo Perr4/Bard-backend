@@ -1,7 +1,7 @@
 package io.bard.presenza_service.service;
 
 import io.bard.presenza_service.dto.PresenzaDto;
-import io.bard.presenza_service.model.Presenza;
+import io.bard.common.model.Presenza;
 
 import io.bard.presenza_service.repo.PresenzaRepo;
 import jakarta.persistence.EntityNotFoundException;

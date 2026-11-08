@@ -1,6 +1,6 @@
 package io.bard.learning_service.dto;
 
-import io.bard.learning_service.model.Sezione;
+import io.bard.common.model.Sezione;
 import lombok.Getter;
 import lombok.Setter;
 

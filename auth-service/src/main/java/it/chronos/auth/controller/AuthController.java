@@ -43,7 +43,6 @@ public class AuthController {
     private final UserAccountRepository userRepository;
     private final UserRoleRepository roleRepository;
     private final JwtService jwtService;
-   // private final UserRegisteredEventPublisher eventPublisher;
 
     public AuthController(
             AuthenticationManager authenticationManager,
@@ -51,14 +50,12 @@ public class AuthController {
             UserAccountRepository userRepository,
             UserRoleRepository roleRepository,
             JwtService jwtService
-         //   UserRegisteredEventPublisher eventPublisher
     ) {
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jwtService = jwtService;
-       // this.eventPublisher = eventPublisher;
     }
 
     @PostMapping("/token")
@@ -87,7 +84,6 @@ public class AuthController {
         user.setRoles(Set.of(role));
 
         UserAccount savedUser = userRepository.save(user);
-        //eventPublisher.publish(savedUser);
         return response(savedUser);
     }
 

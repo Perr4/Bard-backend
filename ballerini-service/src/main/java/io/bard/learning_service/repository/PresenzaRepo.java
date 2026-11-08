@@ -1,6 +1,6 @@
 package io.bard.learning_service.repository;
 
-import io.bard.learning_service.model.Presenza;
+import io.bard.common.model.Presenza;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

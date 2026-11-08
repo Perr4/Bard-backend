@@ -1,0 +1,136 @@
+# BARD Backend — ambiente di sviluppo completo
+#
+# Avvia:  docker compose up --build
+# Ferma:  docker compose down
+# Dati:   docker compose down -v   (cancella anche il volume di PostgreSQL)
+#
+# Rete: tutti i servizi condividono la rete "BARD".
+# Porte esposte sull'host: SOLO il gateway (8080).
+# PostgreSQL: volume persistente, non esposto all'esterno.
+# Nessun broker Kafka: il backend non lo utilizza.
+
+name: bard
+
+networks:
+  BARD:
+    driver: bridge
+
+volumes:
+  pgdata:
+
+services:
+
+  # ------------------------------------------------------------------
+  # Database condiviso da tutti i microservizi.
+  # Porta 5432 NON esposta: raggiungibile solo dalla rete BARD.
+  # ------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bard
+      POSTGRES_PASSWORD: "0000"
+      POSTGRES_DB: postgres
+    volumes:
+      # 00-create-schema.sql gira prima di schema.sql (ordine alfabetico)
+      - ./sql/init/00-create-schema.sql:/docker-entrypoint-initdb.d/00-create-schema.sql:ro
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bard -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  # ------------------------------------------------------------------
+  # Service registry — deve partire per primo.
+  # Porta 8761 NON esposta: i servizi si registrano dentro la rete BARD.
+  # ------------------------------------------------------------------
+  eureka-service:
+    build:
+      context: .
+      dockerfile: eureka-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-service:8761/eureka/
+    networks:
+      - BARD
+
+  # ------------------------------------------------------------------
+  # Microservizi applicativi.
+  # Porte NON esposte: raggiungibili solo dalla rete BARD.
+  # ------------------------------------------------------------------
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/postgres
+      DB_USERNAME: bard
+      DB_PASSWORD: "0000"
+      EUREKA_URL: http://eureka-service:8761/eureka/
+      CHRONOS_JWT_SECRET: ${CHRONOS_JWT_SECRET:-chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
+    networks:
+      - BARD
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+
+  ballerini-service:
+    build:
+      context: .
+      dockerfile: ballerini-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/postgres
+      DB_USERNAME: bard
+      DB_PASSWORD: "0000"
+      EUREKA_URL: http://eureka-service:8761/eureka/
+      AUTH_SERVICE_URL: http://auth-service:7999
+    networks:
+      - BARD
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+
+  presenza-service:
+    build:
+      context: .
+      dockerfile: presenza-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/postgres
+      DB_USERNAME: bard
+      DB_PASSWORD: "0000"
+      EUREKA_URL: http://eureka-service:8761/eureka/
+    networks:
+      - BARD
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+
+  # ------------------------------------------------------------------
+  # API Gateway — UNICA porta esposta sull'host (8080).
+  # ------------------------------------------------------------------
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URL: http://eureka-service:8761/eureka/
+      CHRONOS_JWT_SECRET: ${CHRONOS_JWT_SECRET:-chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
+      CHRONOS_FRONTEND_ORIGIN: http://localhost:4200
+    networks:
+      - BARD
+    depends_on:
+      - eureka-service
+      - auth-service
+      - ballerini-service
+      - presenza-service

@@ -23,6 +23,7 @@
     <description>Parent Maven dei microservizi BARD</description>
 
     <modules>
+        <module>bard-common</module>
         <module>auth-service</module>
         <module>ballerini-service</module>
         <module>presenza-service</module>

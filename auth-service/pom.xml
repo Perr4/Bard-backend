@@ -65,12 +65,6 @@
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
 
-        <!-- Invio e ricezione degli eventi Kafka -->
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
-
         <!-- Driver JDBC per PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
