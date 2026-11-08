@@ -1,0 +1,20 @@
+# Build output Maven
+**/target/
+out-tsc/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Documentazione e strumenti (non servono al build)
+docs/
+strumenti/
+graphify-out/
+
+# Segreti
+.gitea-token
+.env
+
+# Git
+.git/

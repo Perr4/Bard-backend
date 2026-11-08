@@ -1,44 +1,44 @@
-# Immagine temporanea usata per compilare il progetto con Maven e Java 21.
+# Dockerfile — auth-service
+# Mono-repo: il build avviene dalla radice per avere il parent pom e bard-common.
+
+# ---- Stage 1: build ----
 FROM maven:3.9.11-eclipse-temurin-21-alpine AS build
 
-# Cartella di lavoro utilizzata durante la compilazione.
 WORKDIR /workspace
 
-# Copia il POM del singolo microservizio.
+# Copia prima i pom (parent + moduli): il parent elenca TUTTI i moduli,
+# quindi Maven esige che i pom di tutti siano presenti.
 COPY pom.xml pom.xml
+COPY bard-common/pom.xml bard-common/pom.xml
+COPY auth-service/pom.xml auth-service/pom.xml
+COPY ballerini-service/pom.xml ballerini-service/pom.xml
+COPY presenza-service/pom.xml presenza-service/pom.xml
+COPY gateway/pom.xml gateway/pom.xml
+COPY eureka-service/pom.xml eureka-service/pom.xml
 
-# Scarica preventivamente le dipendenze Maven.
-RUN mvn dependency:go-offline -B
+# Scarica le dipendenze del modulo (richiede anche bard-common)
+RUN mvn -B -pl auth-service -am dependency:go-offline
 
-# Copia il codice sorgente del singolo microservizio.
-COPY src src
+# Copia i sorgenti
+COPY bard-common/src bard-common/src
+COPY auth-service/src auth-service/src
 
-# Compila l'applicazione senza eseguire i test.
-RUN mvn clean package -DskipTests -B
+# Compila il modulo e i suoi dipendenti (bard-common), senza test
+RUN mvn -B -pl auth-service -am clean package -DskipTests
 
-# Immagine dalla quale viene prelevato l'agente OpenTelemetry.
-FROM otel/autoinstrumentation-java:latest AS otel-agent
-
-# Immagine finale contenente solamente Java e l'applicazione.
+# ---- Stage 2: runtime ----
 FROM eclipse-temurin:21-jre-alpine
 
-# Crea un utente non amministratore.
-RUN addgroup -S chronos && adduser -S chronos -G chronos
+# Utente non privilegiato
+RUN addgroup -S bard && adduser -S bard -G bard
 
-# Cartella di lavoro dell'applicazione.
 WORKDIR /app
 
-# Copia l'agente OpenTelemetry.
-COPY --from=otel-agent /javaagent.jar /app/opentelemetry-javaagent.jar
+COPY --from=build /workspace/auth-service/target/*.jar /app/application.jar
 
-# Copia il JAR generato durante la compilazione.
-COPY --from=build /workspace/target/*.jar /app/application.jar
+RUN chown -R bard:bard /app
+USER bard
 
-# Assegna i file all'utente chronos.
-RUN chown -R chronos:chronos /app
+EXPOSE 7999
 
-# Esegue il container senza privilegi amministrativi.
-USER chronos
-
-# Avvia Spring Boot insieme all'agente OpenTelemetry.
-ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "/app/application.jar"]
+ENTRYPOINT ["java", "-jar", "/app/application.jar"]
