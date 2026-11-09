@@ -1,7 +1,7 @@
 package it.chronos.gateway.security;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -30,8 +30,10 @@ public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
     public Mono<Authentication> authenticate(Authentication authentication) {
         return Mono.just(authentication.getCredentials().toString())
                 .map(this::parseClaims)
-                .onErrorMap(ExpiredJwtException.class, ex->
-                    new CredentialsExpiredException("jwt scaduto", ex)
+                // JwtException copre token scaduto, malformato o firmato con altra chiave:
+                // tutti devono risultare 401, non 500.
+                .onErrorMap(JwtException.class, ex ->
+                    new CredentialsExpiredException("jwt non valido", ex)
                 )
                 .map(claims -> new UsernamePasswordAuthenticationToken(
                         claims.getSubject(),
