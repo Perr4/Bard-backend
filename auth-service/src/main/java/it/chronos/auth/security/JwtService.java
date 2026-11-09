@@ -1,6 +1,7 @@
 package it.chronos.auth.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +43,25 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         return userDetails.getUsername().equals(extractUsername(token)) && !claims(token).getExpiration().before(new Date());
+    }
+
+    /**
+     * Verifica la validita' di un token senza bisogno di uno UserDetails:
+     * controlla firma, formato e scadenza.
+     *
+     * @return true solo se il token e' ben formato, firmato con la chiave corretta
+     *         e non scaduto; false in tutti gli altri casi (token assente, vuoto,
+     *         malformato, con chiave errata o scaduto)
+     */
+    public boolean isValid(String token) {
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+        try {
+            return claims(token).getExpiration().after(new Date());
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private Claims claims(String token) {

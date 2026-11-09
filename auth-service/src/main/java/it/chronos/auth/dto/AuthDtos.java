@@ -88,6 +88,22 @@ public final class AuthDtos {
     }
 
     /**
+     * Richiesta di verifica token: il token da controllare.
+     */
+    public record TokenRequest(
+            /** Token JWT da verificare. */
+            String token) {
+    }
+
+    /**
+     * Esito della verifica di un token.
+     */
+    public record TokenResponse(
+            /** true se il token e' ben formato, firmato con la chiave corretta e non scaduto. */
+            boolean valid) {
+    }
+
+    /**
      * Anagrafica di un utente, letta dal servizio interna (ballerini-service).
      */
     public record UserAnagrafica(

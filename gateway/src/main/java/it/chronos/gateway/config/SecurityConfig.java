@@ -62,10 +62,13 @@ public class SecurityConfig {
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/api/auth/login").permitAll()
-                        .pathMatchers("/api/learning/**").authenticated()
                         .pathMatchers("/auth/login").permitAll()
                         .pathMatchers("/login").permitAll()
                         .pathMatchers("/api/auth/register").permitAll()
+                        // /api/auth/token e' un endpoint di introspezione: deve poter
+                        // essere chiamato anche con un token non valido, quindi la
+                        // verifica la fa auth-service (vedi AuthController.checkToken)
+                        .pathMatchers("/api/auth/token").permitAll()
                         .pathMatchers("/actuator/health").permitAll()
                         .pathMatchers("/actuator/info").permitAll()
                         .anyExchange().authenticated()

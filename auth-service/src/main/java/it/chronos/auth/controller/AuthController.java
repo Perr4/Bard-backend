@@ -3,6 +3,8 @@ package it.chronos.auth.controller;
 import it.chronos.auth.dto.AuthDtos.AuthResponse;
 import it.chronos.auth.dto.AuthDtos.LoginRequest;
 import it.chronos.auth.dto.AuthDtos.RegisterRequest;
+import it.chronos.auth.dto.AuthDtos.TokenRequest;
+import it.chronos.auth.dto.AuthDtos.TokenResponse;
 import it.chronos.auth.dto.AuthDtos.UserAnagrafica;
 import it.chronos.auth.dto.AuthDtos.UserProfile;
 import it.chronos.auth.model.UserAccount;
@@ -14,7 +16,6 @@ import it.chronos.auth.security.JwtService;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -58,12 +59,17 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Verifica la validita' di un token JWT.
+     *
+     * <p>Endpoint di introspezione: e' pubblico (non richiede un token valido,
+     * altrimenti la verifica sarebbe circolare) e risponde true solo se il token
+     * e' ben formato, firmato con la chiave corretta e non scaduto.</p>
+     */
     @PostMapping("/token")
-    public ResponseEntity<?> checkToken(){
-        return ResponseEntity.ok(Map.of(
-                "valid",true
-
-        ));
+    public TokenResponse checkToken(@RequestBody(required = false) TokenRequest request) {
+        String token = request == null ? null : request.token();
+        return new TokenResponse(jwtService.isValid(token));
     }
 
     @PostMapping("/register")
