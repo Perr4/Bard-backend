@@ -36,6 +36,12 @@ public class BallerinoController {
         return ResponseEntity.ok(service.getAllBallerini());
     }
 
+    //R by id *
+    @GetMapping("/ballerino/{id}")
+    public ResponseEntity<BallerinoDto> getBallerinoById(@PathVariable("id") UUID id){
+        return ResponseEntity.ok(service.getBallerinoById(id));
+    }
+
     //U
     @PutMapping("/ballerino")
     public ResponseEntity<BallerinoDto> updateBallerino(@RequestBody BallerinoDto updateEntity) {

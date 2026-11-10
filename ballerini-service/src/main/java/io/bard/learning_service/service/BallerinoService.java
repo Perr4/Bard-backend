@@ -40,6 +40,22 @@ public class BallerinoService {
                 .map(this::toDto)
                 .toList();
     }
+
+    /**
+     * Ballerino identificato dal proprio id, con l'anagrafica letta da auth-service.
+     *
+     * @throws ResponseStatusException 404 se il ballerino non esiste
+     */
+    public BallerinoDto getBallerinoById(UUID id){
+        Ballerino ballerino = ballRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "ballerino non trovato: " + id));
+        return toDto(ballerino);
+    }
+
+    /** @deprecated non usato: sostituito da {@link #getBallerinoById(UUID)} */
+    @Deprecated
     public void getBallerino(){
 
     }
