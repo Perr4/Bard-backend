@@ -46,6 +46,12 @@ Piano dettagliato: `piano-presenza-con-persona.md`
 - [ ] Test che avvia lo stack e verifica login → token → chiamata autenticata
       (i bug di ieri non si vedevano dai test unitari)
 
+### Verifica obbligatoria per ogni endpoint (fatta da Perra)
+Ogni endpoint nuovo o modificato va testato con TRE chiamate:
+- [ ] senza token → **401**
+- [ ] token falso → **401**
+- [ ] token valido → **200**
+
 ---
 
 ## D. Documentazione
