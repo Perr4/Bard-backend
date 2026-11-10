@@ -8,6 +8,13 @@
 # Porte esposte sull'host: SOLO il gateway (8080).
 # PostgreSQL: volume persistente, non esposto all'esterno.
 # Nessun broker Kafka: il backend non lo utilizza.
+#
+# Ordine di avvio (grazie agli healthcheck):
+#   1. postgres
+#   2. eureka-service
+#   3. auth-service
+#   4. ballerini-service, presenza-service
+#   5. gateway
 
 name: bard
 
@@ -21,8 +28,8 @@ volumes:
 services:
 
   # ------------------------------------------------------------------
-  # Database condiviso da tutti i microservizi.
-  # Porta 5432 NON esposta: raggiungibile solo dalla rete BARD.
+  # 1. Database condiviso da tutti i microservizi.
+  #    Porta 5432 NON esposta: raggiungibile solo dalla rete BARD.
   # ------------------------------------------------------------------
   postgres:
     image: postgres:17-alpine
@@ -45,8 +52,8 @@ services:
       start_period: 10s
 
   # ------------------------------------------------------------------
-  # Service registry — deve partire per primo.
-  # Porta 8761 NON esposta: i servizi si registrano dentro la rete BARD.
+  # 2. Service registry — deve partire per primo.
+  #    Porta 8761 NON esposta: i servizi si registrano dentro la rete BARD.
   # ------------------------------------------------------------------
   eureka-service:
     build:
@@ -56,10 +63,16 @@ services:
       EUREKA_URL: http://eureka-service:8761/eureka/
     networks:
       - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
 
   # ------------------------------------------------------------------
-  # Microservizi applicativi.
-  # Porte NON esposte: raggiungibili solo dalla rete BARD.
+  # 3. auth-service — prima dei servizi applicativi.
+  #    Gli altri servizi leggono l'anagrafica da lui.
   # ------------------------------------------------------------------
   auth-service:
     build:
@@ -73,12 +86,22 @@ services:
       CHRONOS_JWT_SECRET: ${CHRONOS_JWT_SECRET:-chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
     networks:
       - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7999/actuator/health | grep -q UP || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
       eureka-service:
-        condition: service_started
+        condition: service_healthy
 
+  # ------------------------------------------------------------------
+  # 4. Microservizi applicativi.
+  #    Porte NON esposte: raggiungibili solo dalla rete BARD.
+  # ------------------------------------------------------------------
   ballerini-service:
     build:
       context: .
@@ -91,11 +114,19 @@ services:
       AUTH_SERVICE_URL: http://auth-service:7999
     networks:
       - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q UP || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
       eureka-service:
-        condition: service_started
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
 
   presenza-service:
     build:
@@ -108,14 +139,23 @@ services:
       EUREKA_URL: http://eureka-service:8761/eureka/
     networks:
       - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
       eureka-service:
-        condition: service_started
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
 
   # ------------------------------------------------------------------
-  # API Gateway — UNICA porta esposta sull'host (8080).
+  # 5. API Gateway — UNICA porta esposta sull'host (8080).
+  #    Parte per ultimo: instrada solo verso servizi gia' pronti.
   # ------------------------------------------------------------------
   gateway:
     build:
@@ -129,8 +169,18 @@ services:
       CHRONOS_FRONTEND_ORIGIN: http://localhost:4200
     networks:
       - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
     depends_on:
-      - eureka-service
-      - auth-service
-      - ballerini-service
-      - presenza-service
+      eureka-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      ballerini-service:
+        condition: service_healthy
+      presenza-service:
+        condition: service_healthy
