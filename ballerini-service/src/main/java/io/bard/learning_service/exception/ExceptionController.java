@@ -1,23 +1,44 @@
 package io.bard.learning_service.exception;
 
 import jakarta.persistence.EntityNotFoundException;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.ErrorResponse;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
-@ControllerAdvice
+/**
+ * Gestione degli errori di ballerini-service.
+ *
+ * <p>Formato uniforme RFC 7807 (ProblemDetail).</p>
+ */
+@RestControllerAdvice
 public class ExceptionController {
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ErrorResponse entityNotFound(EntityNotFoundException error) {
-        return ErrorResponse.builder(
-                error,
-                ProblemDetail.forStatus(HttpStatus.NOT_FOUND)
-        ).build();
+    /**
+     * Input non valido: raccoglie i messaggi dei campi.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ErrorResponse validazioneFallita(MethodArgumentNotValidException ex) {
+        String dettagli = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+
+        return ErrorResponse.builder(ex, HttpStatus.BAD_REQUEST, dettagli).build();
     }
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ErrorResponse nonTrovato(EntityNotFoundException ex) {
+        return ErrorResponse.builder(ex, HttpStatus.NOT_FOUND, "Risorsa non trovata").build();
+    }
+
+    /**
+     * Errori dichiarati con {@link ResponseStatusException} (es. 404, 400).
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ErrorResponse statusException(ResponseStatusException ex) {
+        return ErrorResponse.builder(ex, ex.getStatusCode(), ex.getReason()).build();
+    }
 }
