@@ -68,8 +68,26 @@ public class BallerinoService {
 
         return toDto(entity);
     }
+    /**
+     * Aggiorna il profilo di un ballerino.
+     *
+     * <p>Si possono modificare solo i campi del profilo (eta', sezione, sesso):
+     * l'anagrafica appartiene a auth-service e l'id non e' modificabile.</p>
+     *
+     * @throws ResponseStatusException 404 se il ballerino non esiste
+     */
+    @Transactional
     public BallerinoDto modificaBallerino(BallerinoDto updateEntity){
-    return null;
+        Ballerino esistente = ballRepo.findById(updateEntity.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "ballerino non trovato: " + updateEntity.getId()));
+
+        esistente.setEta(updateEntity.getEta());
+        esistente.setSezione(updateEntity.getSezione());
+        esistente.setSesso(updateEntity.getSesso());
+
+        return toDto(ballRepo.save(esistente));
     }
 
     /**

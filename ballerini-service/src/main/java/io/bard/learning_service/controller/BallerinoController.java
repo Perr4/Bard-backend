@@ -42,9 +42,9 @@ public class BallerinoController {
         return ResponseEntity.ok(service.getBallerinoById(id));
     }
 
-    //U
+
     @PutMapping("/ballerino")
-    public ResponseEntity<BallerinoDto> updateBallerino(@RequestBody BallerinoDto updateEntity) {
+    public ResponseEntity<BallerinoDto> updateBallerino(@Valid @RequestBody BallerinoDto updateEntity) {
          return ResponseEntity.ok(service.modificaBallerino(updateEntity));
     }
 

@@ -18,5 +18,6 @@ public class BallerinoDto {
     private Date dataNascita;
     private Integer eta;
     private Sezione sezione;
+    private String sesso;
 
 }
