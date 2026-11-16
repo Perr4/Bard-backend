@@ -81,6 +81,20 @@ public class PresenzaController {
         return ResponseEntity.ok(service.getAllbyBallerinoId(id));
     }
 
+    // R (tutte) *
+    @Operation(summary = "Get all presenze",
+            description = "Retrieves every attendance record.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of all presenze",
+                    content = @Content(schema = @Schema(implementation = PresenzaDto.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/presenza")
+    public ResponseEntity<List<PresenzaDto>> getAllPresenze() {
+        return ResponseEntity.ok(service.getAllPresenze());
+    }
+
     // D *
     @Operation(summary = "Delete presenza",
             description = "Deletes a specific attendance record by its UUID.")

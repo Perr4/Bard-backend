@@ -34,6 +34,13 @@ public class PresenzaService {
         return repo.findAllByBallerinoId(id).stream().map(item->
                 mapper.map(item, PresenzaDto.class)).toList(); }
 
+    /** Tutte le presenze, per i report e la classifica della dashboard. */
+    public List<PresenzaDto> getAllPresenze() {
+        return repo.findAll().stream()
+                .map(item -> mapper.map(item, PresenzaDto.class))
+                .toList();
+    }
+
 
     @Transactional
     public PresenzaDto deletePresenza(UUID uuid){
