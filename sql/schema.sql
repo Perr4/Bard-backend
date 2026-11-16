@@ -70,6 +70,43 @@ INSERT INTO bard.auth_roles (name, description)
 VALUES ('STUDENT', 'Studente')
 ON CONFLICT (name) DO NOTHING;
 
+-- ruolo amministratore
+INSERT INTO bard.auth_roles (name, description)
+VALUES ('ADMIN', 'Amministratore')
+ON CONFLICT (name) DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Utente amministratore di default
+--
+-- Email:    admin@bard.it
+-- Password: Admin1234
+--
+-- La password e' in BCrypt (costo 10), prodotta da
+-- BCryptPasswordEncoder di Spring Security: e' la stessa codifica usata da
+-- auth-service, quindi la login funziona senza passaggi aggiuntivi.
+--
+-- L'INSERT usa l'id del ruolo appena creato: non serve conoscere l'UUID.
+-- ON CONFLICT DO NOTHING: ri-eseguire schema.sql (o ricreare il container)
+-- non fallisce e non sovrascrive una password cambiata a mano.
+-- ---------------------------------------------------------------------
+INSERT INTO bard.auth_users (email, password, first_name, last_name, data_nascita, enabled)
+SELECT 'admin@bard.it',
+       '$2a$10$8h3LVMeiLX6WPhbcndj9le0vy8/2qrRb3xG336z8EOzzbVvA07Z/m',
+       'Amministratore',
+       'BARD',
+       NULL,
+       TRUE
+ON CONFLICT (email) DO NOTHING;
+
+
+INSERT INTO bard.auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM bard.auth_users u
+CROSS JOIN bard.auth_roles r
+WHERE u.email = 'admin@bard.it'
+  AND r.name = 'ADMIN'
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
 -- ---------------------------------------------------------------------
 -- ballerini-service
 -- ---------------------------------------------------------------------
