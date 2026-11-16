@@ -32,7 +32,7 @@ Legenda: `[ ]` da fare · `[~]` in corso · `[x]` fatto · `[!]` bloccato
 
 ### presenza-service
 - [x] CRUD presenze
-- [ ] `GET /api/presenza` — tutte le presenze (oggi 405)
+- [x] `GET /api/presenza` — tutte le presenze
 - [ ] Correggere `DELETE /api/presenza/{id}`: il frontend passa un `ballerino_id`
 - [ ] Handler `ProblemDetail` per `MethodArgumentNotValidException`
 
@@ -76,10 +76,24 @@ Legenda: `[ ]` da fare · `[~]` in corso · `[x]` fatto · `[!]` bloccato
 
 ---
 
+## Fase 7 — Frontend
+
+- [x] Refactor dei nomi: `PresenzePage`, `PresenzaRiga`, `PersonaPage`,
+      `PersonaDettaglio`, `AuthenticationPage`
+- [x] Navbar nascosta sulla pagina di accesso
+- [x] `/presenze` e `/dashboard` sono rotte separate (la navbar "Presenze"
+      puntava a `/dashboard`)
+- [x] Pagina `/dashboard` creata come segnaposto: contenuto in
+      `src/app/dashboard/dashboard-page/README.md`
+- [x] Bottone "+" in Persona: crea utente di auth e profilo ballerino
+- [ ] Classifica per numero di presenze in dashboard
+- [ ] Mappa della Sardegna (dopo le uscite, Fase 3)
+- [ ] `dataNascita` nel `RegisterRequest` (oggi il form non la imposta)
+- [ ] Pagina `/persona/:userId` da popolare (oggi e' vuota)
+
 ## Note
 
-- Priorita' immediata: **chiudere la Fase 2** (dashboard, `GET /api/presenza`,
-  bug rimasti), poi attuare il front-end su quelle API.
+- Priorita' immediata: **chiudere la Fase 2**, poi la **Fase 7** (classifica in dashboard).
 - Ogni endpoint nuovo o modificato va verificato con tre chiamate:
   **senza token → 401**, **token falso → 401**, **token valido → 200**.
 - Le entita' restano separate; si compongono con DTO di lettura, senza tabelle nuove
