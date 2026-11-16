@@ -2,6 +2,7 @@ package it.chronos.gateway.config;
 
 import it.chronos.gateway.security.BearerTokenServerAuthenticationConverter;
 import it.chronos.gateway.security.JwtAuthenticationManager;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -21,6 +22,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -101,13 +103,15 @@ public class SecurityConfig {
                 .build();
     }
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${CHRONOS_FRONTEND_ORIGIN:http://localhost:4200}") String allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "http://localhost:4200",
-                "http://127.0.0.1:4200"
-        ));
+        // Lista separata da virgole: http://localhost:4200,http://192.168.1.22:4200
+        config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList());
 
         config.setAllowedMethods(List.of(
                 "GET",
