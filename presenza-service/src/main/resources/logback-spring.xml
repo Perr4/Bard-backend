@@ -5,7 +5,9 @@
 
     <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
         <http>
-            <url>http://localhost:3100/loki/api/v1/push</url>
+            <!-- Dentro la rete BARD Loki si chiama "loki" (vedi docker-compose.yml).
+                 Sovrascrivibile con LOKI_URL. -->
+            <url>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</url>
         </http>
         <format>
             <label>

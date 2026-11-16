@@ -5,7 +5,9 @@
 # Dati:   docker compose down -v   (cancella anche il volume di PostgreSQL)
 #
 # Rete: tutti i servizi condividono la rete "BARD".
-# Porte esposte sull'host: SOLO il gateway (8080).
+# Porte esposte sull'host: gateway (8080), pg-view (8083),
+# OTLP (4317/4318), Tempo (3200), Loki (3100), Prometheus (9090),
+# Grafana (3001).
 # PostgreSQL: volume persistente, non esposto all'esterno.
 # Nessun broker Kafka: il backend non lo utilizza.
 #
@@ -15,6 +17,7 @@
 #   3. auth-service
 #   4. ballerini-service, presenza-service
 #   5. gateway
+#   6. osservabilita': tempo, loki -> otel-collector -> prometheus
 
 name: bard
 
@@ -24,8 +27,36 @@ networks:
 
 volumes:
   pgdata:
+  pgview-data:
+  otel-data:
+  tempo-data:
+  loki-data:
+  prometheus-data:
+  grafana-data:
 
 services:
+
+  pg-view:
+    image: lcurrol/pg-view
+    ports:
+      # 8080 e' del gateway: pg-view deve avere una porta sua.
+      - '8083:3000'
+    environment:
+      PGVIEW_USERNAME: admin
+      PGVIEW_PASSWORD: "123456"
+      PGVIEW_SESSION_SECRET: ${PGVIEW_SESSION_SECRET:-chronos-pg-view-session-secret-change-me-2026}
+      # Il database e' "postgres": i dati vivono nello schema "bard".
+      DB_URL: postgresql://bard:0000@postgres:5432/postgres?currentSchema=bard
+    volumes:
+      # named volume: la bind mount ./pg-view richiedeva una cartella inesistente.
+      - pgview-data:/app/.data
+    networks:
+      - BARD
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 
   # ------------------------------------------------------------------
   # 1. Database condiviso da tutti i microservizi.
@@ -127,7 +158,6 @@ services:
         condition: service_healthy
       auth-service:
         condition: service_healthy
-
   presenza-service:
     build:
       context: .
@@ -137,6 +167,16 @@ services:
       DB_USERNAME: bard
       DB_PASSWORD: "0000"
       EUREKA_URL: http://eureka-service:8761/eureka/
+      # OTLP: dentro la rete BARD il collector si chiama "otel-collector".
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_SERVICE_NAME: presenza-service
+      OTEL_RESOURCE_ATTRIBUTES: service.name=presenza-service,environment=development
+      # Loki (usato dall'appender logback di presenza-service).
+      LOKI_URL: http://loki:3100/loki/api/v1/push
     networks:
       - BARD
     healthcheck:
@@ -166,7 +206,10 @@ services:
     environment:
       EUREKA_URL: http://eureka-service:8761/eureka/
       CHRONOS_JWT_SECRET: ${CHRONOS_JWT_SECRET:-chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
-      CHRONOS_FRONTEND_ORIGIN: http://localhost:4200
+      # Origini CORS consentite, separate da virgola. Oltre a localhost:4200
+      # c'e' l'IP della macchina: il front-end aperto da un altro PC sulla LAN
+      # (http://192.168.1.22:4200) sarebbe bloccato altrimenti.
+      CHRONOS_FRONTEND_ORIGIN: ${CHRONOS_FRONTEND_ORIGIN:-http://localhost:4200,http://127.0.0.1:4200,http://192.168.1.22:4200}
     networks:
       - BARD
     healthcheck:
@@ -184,3 +227,159 @@ services:
         condition: service_healthy
       presenza-service:
         condition: service_healthy
+
+  # ==================================================================
+  # 6. Osservabilita' — OpenTelemetry
+  #
+  # Flusso: presenza-service --OTLP--> otel-collector --> {Prometheus, Tempo, Loki}
+  #
+  #   otel-collector : riceve metriche/tracce/log via OTLP (:4317 grpc,
+  #                    :4318 http) e li smista. Espone le metriche in
+  #                    formato Prometheus su :8889.
+  #   tempo          : backend delle tracce (OTLP in ingresso :4318).
+  #   loki           : backend dei log (OTLP in ingresso :3100/otlp).
+  #   prometheus     : raccoglie le metriche dal collector (:8889) e dal
+  #                    presenza-service (:8082/actuator/prometheus).
+  #   grafana        : UI su :3001, datasource e dashboard provisionati.
+  #
+  # Porte esposte sull'host: 4317/4318 (OTLP), 3200 (Tempo), 3100 (Loki),
+  # 9090 (Prometheus), 3001 (Grafana).
+  # ==================================================================
+
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.165.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./strumenti/Observability/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+      - otel-data:/var/lib/otelcol
+    ports:
+      # OTLP in ingresso dai microservizi (utile anche in locale).
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - BARD
+    restart: unless-stopped
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
+      loki-init:
+        condition: service_completed_successfully
+  tempo:
+    image: grafana/tempo:2.10.10
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./strumenti/Observability/tempo.yml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/lib/tempo
+    ports:
+      # 3200 = API/UI di Tempo, usata dalla datasource "Tempo" di Grafana.
+      # 4317/4318 NON sono esposte: sono l'ingresso OTLP del collector.
+      - "3200:3200"
+    networks:
+      - BARD
+    restart: unless-stopped
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
+    # Tempo gira come UID 10001: senza questo passo il volume e' root:root
+    # e il servizio muore con "mkdir /var/lib/tempo/traces: permission denied".
+    user: "10001:10001"
+  tempo-init:
+    image: alpine:3.20
+    command: ["sh", "-c", "mkdir -p /var/lib/tempo/traces /var/lib/tempo/wal && chown -R 10001:10001 /var/lib/tempo"]
+    volumes:
+      - tempo-data:/var/lib/tempo
+    networks:
+      - BARD
+    restart: "no"
+  loki:
+    image: grafana/loki:3.7.10
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./strumenti/Observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/var/lib/loki
+    ports:
+      # 3100 = API di Loki, usata dalla datasource "Loki" di Grafana.
+      - "3100:3100"
+    networks:
+      - BARD
+    restart: unless-stopped
+    depends_on:
+      loki-init:
+        condition: service_completed_successfully
+    user: "10001:10001"
+  loki-init:
+    image: alpine:3.20
+    command:
+      - "sh"
+      - "-c"
+      - "mkdir -p /var/lib/loki/chunks /var/lib/loki/rules /var/lib/loki/index /var/lib/loki/wal && chown -R 10001:10001 /var/lib/loki"
+    volumes:
+      - loki-data:/var/lib/loki
+    networks:
+      - BARD
+    restart: "no"
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/var/lib/prometheus"
+      - "--web.enable-remote-write-receiver"
+    volumes:
+      - ./strumenti/Observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/var/lib/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - BARD
+    restart: unless-stopped
+    depends_on:
+      prometheus-init:
+        condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
+      presenza-service:
+        condition: service_healthy
+  prometheus-init:
+    image: alpine:3.20
+    # Prometheus gira come "nobody" (65534): senza questa preparazione muore con
+    # "open /var/lib/prometheus/queries.active: permission denied".
+    command: ["sh", "-c", "mkdir -p /var/lib/prometheus && chown -R 65534:65534 /var/lib/prometheus"]
+    volumes:
+      - prometheus-data:/var/lib/prometheus
+    networks:
+      - BARD
+    restart: "no"
+
+  # ------------------------------------------------------------------
+  # 6.1 Grafana — UI di metriche/log/tracce.
+  #     Porta 3001 sull'host (la 3000 la usa l'istanza di sistema).
+  #     Datasource e dashboard sono provisionati da
+  #     strumenti/Observability/grafana/.
+  # ------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.3.1
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_HTTP_PORT: "3000"
+    volumes:
+      - ./strumenti/Observability/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./strumenti/Observability/grafana/provisioning:/etc/grafana/provisioning/dashboards:ro
+      - ./strumenti/Observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    networks:
+      - BARD
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+
