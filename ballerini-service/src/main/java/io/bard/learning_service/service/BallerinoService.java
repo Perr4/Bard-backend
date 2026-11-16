@@ -22,7 +22,7 @@ public class BallerinoService {
     private final BalleriniRepo ballRepo;
     private final AuthServiceClient authServiceClient;
 
-    //TODO aggiunger findById e Update
+  
 
     BallerinoService(BalleriniRepo repoBallerini, ModelMapper mapper, AuthServiceClient authServiceClient) {
       this.ballRepo = repoBallerini;
@@ -54,11 +54,6 @@ public class BallerinoService {
         return toDto(ballerino);
     }
 
-    /** @deprecated non usato: sostituito da {@link #getBallerinoById(UUID)} */
-    @Deprecated
-    public void getBallerino(){
-
-    }
     @Transactional
     public BallerinoDto deleteBallerino(UUID uuid){
             Ballerino entity = ballRepo.findById(uuid).orElseThrow(
