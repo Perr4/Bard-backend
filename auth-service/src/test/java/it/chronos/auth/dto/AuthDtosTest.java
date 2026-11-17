@@ -10,6 +10,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -34,13 +35,14 @@ class AuthDtosTest {
     @Test
     void registerRequestShouldExposeComponents() {
         RegisterRequest dto = new RegisterRequest(
-                "sara@example.it", "Sara", "Rossi", "segretissimo", "STUDENT");
+                "sara@example.it", "Sara", "Rossi", "segretissimo", "STUDENT", Date.valueOf("2000-01-15"));
 
         assertEquals("sara@example.it", dto.email());
         assertEquals("Sara", dto.firstName());
         assertEquals("Rossi", dto.lastName());
         assertEquals("segretissimo", dto.password());
         assertEquals("STUDENT", dto.role());
+        assertEquals(Date.valueOf("2000-01-15"), dto.dataNascita());
     }
 
     @Test
@@ -101,7 +103,7 @@ class AuthDtosTest {
             Validator validator = factory.getValidator();
 
             Set<ConstraintViolation<RegisterRequest>> violations =
-                    validator.validate(new RegisterRequest("non-una-email", "", "", "corta", "STUDENT"));
+                    validator.validate(new RegisterRequest("non-una-email", "", "", "corta", "STUDENT", null));
 
             assertEquals(4, violations.size(), () -> "attese 4 violazioni, trovate: " + violations);
         }
@@ -113,7 +115,7 @@ class AuthDtosTest {
             Validator validator = factory.getValidator();
 
             Set<ConstraintViolation<RegisterRequest>> violations =
-                    validator.validate(new RegisterRequest("sara@example.it", "Sara", "Rossi", "segretissimo", null));
+                    validator.validate(new RegisterRequest("sara@example.it", "Sara", "Rossi", "segretissimo", null, Date.valueOf("2000-01-15")));
 
             assertTrue(violations.isEmpty(), () -> "violazioni inattese: " + violations);
         }

@@ -1,7 +1,9 @@
 package io.bard.learning_service;
 
-import io.bard.learning_service.config.AuthServiceClient;
-import io.bard.learning_service.config.AuthServiceClient.UserAnagrafica;
+import io.bard.learning_service.dto.UserCreate;
+import io.bard.learning_service.service.AuthCliente;
+import io.bard.learning_service.service.AuthCliente.RegisterResponse;
+import io.bard.learning_service.service.AuthCliente.UserAnagrafica;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,9 +14,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,8 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Test di integrazione della creazione del profilo ballerino.
  *
- * <p>Il client verso auth-service e' mocked: i test verificano la validazione
- * dell'input e la composizione del DTO, non la disponibilita' del servizio remoto.</p>
+ * <p>Il client Feign verso auth-service e' mocked: i test verificano la validazione
+ * dell'input, la composizione del DTO e il collegamento tra utente e profilo, non la
+ * disponibilita' del servizio remoto.</p>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -35,17 +40,19 @@ class BallerinoControllerIntegrationTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private AuthServiceClient authServiceClient;
+    private AuthCliente authCliente;
 
     @Test
     void shouldCreateBallerinoWithComposedAnagrafica() throws Exception {
         UUID userId = UUID.randomUUID();
-        when(authServiceClient.findAnagrafica(userId))
+        when(authCliente.register(any(UserCreate.class)))
+                .thenReturn(new RegisterResponse(userId, "sara@example.it", "Sara Rossi", List.of("STUDENT")));
+        when(authCliente.findAnagrafica(userId))
                 .thenReturn(new UserAnagrafica(userId, "Sara", "Rossi", Date.valueOf("2000-01-15")));
 
         String body = """
-                {"userId":"%s","eta":25,"sezione":"GRUPPO","sesso":"F"}
-                """.formatted(userId);
+                {"user":{"email":"sara@example.it","password":"segretissimo","firstName":"Sara","lastName":"Rossi","dataNascita":"2000-01-15"},"sezione":"Ballo","sesso":"F"}
+                """;
 
         mockMvc.perform(post("/api/ballerino")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,14 +64,15 @@ class BallerinoControllerIntegrationTest {
                 // il formato dipende dal mapper HTTP (Jackson 3 in Spring 7):
                 // si verifica la data senza dipendere dal formato esatto
                 .andExpect(jsonPath("$.dataNascita").value(containsString("2000-01-15")))
-                .andExpect(jsonPath("$.eta").value(25))
-                .andExpect(jsonPath("$.sezione").value("GRUPPO"));
+                // eta' calcolata dal servizio dalla data di nascita
+                .andExpect(jsonPath("$.eta").value(26))
+                .andExpect(jsonPath("$.sezione").value("Ballo"));
     }
 
     @Test
-    void shouldRejectCreateWithoutUserId() throws Exception {
+    void shouldRejectCreateWithoutUser() throws Exception {
         String body = """
-                {"eta":25,"sezione":"GRUPPO"}
+                {"sezione":"Ballo","sesso":"F"}
                 """;
 
         mockMvc.perform(post("/api/ballerino")
@@ -74,13 +82,12 @@ class BallerinoControllerIntegrationTest {
     }
 
     @Test
-    void shouldRejectCreateWithUnknownUserId() throws Exception {
-        UUID userId = UUID.randomUUID();
-        when(authServiceClient.findAnagrafica(userId)).thenReturn(null);
+    void shouldRejectCreateWhenUserCannotBeCreated() throws Exception {
+        when(authCliente.register(any(UserCreate.class))).thenReturn(null);
 
         String body = """
-                {"userId":"%s","eta":25}
-                """.formatted(userId);
+                {"user":{"email":"sara@example.it","password":"segretissimo","firstName":"Sara","lastName":"Rossi","dataNascita":"2000-01-15"},"sezione":"Ballo"}
+                """;
 
         mockMvc.perform(post("/api/ballerino")
                         .contentType(MediaType.APPLICATION_JSON)

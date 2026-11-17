@@ -54,7 +54,10 @@ public final class AuthDtos {
             String password,
             /** Ruolo richiesto. Opzionale: se assente viene assegnato il ruolo di default. */
             @Size(max = 32, message = "il ruolo non puo superare i 32 caratteri")
-            String role) {
+            String role,
+            /** Data di nascita dell'utente. Opzionale. */
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+            java.sql.Date dataNascita) {
     }
 
     /**

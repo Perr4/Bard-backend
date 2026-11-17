@@ -26,7 +26,16 @@
 		<url/>
 	</scm>
 	<dependencies>
-
+		<!-- Modulo di OpenFeign -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+		</dependency>
+		<!-- Load balancer: Feign lo usa per risolvere il nome del servizio via Eureka -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-loadbalancer</artifactId>
+		</dependency>
 		<!-- Modulo condiviso delle entità JPA -->
 		<dependency>
 			<groupId>io.bard</groupId>
