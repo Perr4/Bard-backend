@@ -90,6 +90,8 @@ Legenda: `[ ]` da fare · `[~]` in corso · `[x]` fatto · `[!]` bloccato
 - [ ] Mappa della Sardegna (dopo le uscite, Fase 3)
 - [ ] `dataNascita` nel `RegisterRequest` (oggi il form non la imposta)
 - [ ] Pagina `/persona/:userId` da popolare (oggi e' vuota)
+- [ ] **Pagina `/user`**: la card deve essere un riscontro con i dati della
+      persona (anagrafica, sezione, presenze) e una **mappa della Sardegna**
 
 ## Sicurezza e design
 
