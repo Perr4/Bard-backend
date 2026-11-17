@@ -21,7 +21,7 @@ public record UserCreate(
         String email,
 
         @NotBlank(message = "la password e obbligatoria")
-        @Size(min = 8, max = 128, message = "la password deve avere tra 8 e 128 caratteri")
+        @Size(min = 3, max = 12, message = "la password deve avere tra 3 e 12 caratteri")
         String password,
 
         @NotBlank(message = "il nome e obbligatorio")

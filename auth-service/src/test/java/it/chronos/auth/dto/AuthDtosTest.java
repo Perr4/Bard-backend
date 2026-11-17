@@ -103,7 +103,7 @@ class AuthDtosTest {
             Validator validator = factory.getValidator();
 
             Set<ConstraintViolation<RegisterRequest>> violations =
-                    validator.validate(new RegisterRequest("non-una-email", "", "", "corta", "STUDENT", null));
+                    validator.validate(new RegisterRequest("non-una-email", "", "", "ab", "STUDENT", null));
 
             assertEquals(4, violations.size(), () -> "attese 4 violazioni, trovate: " + violations);
         }

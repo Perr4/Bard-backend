@@ -48,9 +48,9 @@ public final class AuthDtos {
             @NotBlank(message = "il cognome e obbligatorio")
             @Size(max = 64, message = "il cognome non puo superare i 64 caratteri")
             String lastName,
-            /** Password dell'utente. Obbligatoria, tra 8 e 128 caratteri. */
+            /** Password dell'utente. Obbligatoria, tra 3 e 12 caratteri. */
             @NotBlank(message = "la password e obbligatoria")
-            @Size(min = 8, max = 128, message = "la password deve avere tra 8 e 128 caratteri")
+            @Size(min = 3, max = 12, message = "la password deve avere tra 3 e 12 caratteri")
             String password,
             /** Ruolo richiesto. Opzionale: se assente viene assegnato il ruolo di default. */
             @Size(max = 32, message = "il ruolo non puo superare i 32 caratteri")
