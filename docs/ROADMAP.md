@@ -93,6 +93,16 @@ Legenda: `[ ]` da fare · `[~]` in corso · `[x]` fatto · `[!]` bloccato
 - [ ] **Pagina `/user`**: la card deve essere un riscontro con i dati della
       persona (anagrafica, sezione, presenze) e una **mappa della Sardegna**
 
+## Presenze
+
+- [x] Pagina: lista di tutti i ballerini con spunta per la data selezionata
+- [x] Spunta → crea la presenza del giorno (`POST /api/presenza`)
+- [x] Togliere la spunta → elimina la presenza (`DELETE /api/presenza/{id}`)
+- [x] Checkbox pre-spuntata in base alle presenze gia' registrate
+- [x] Fix backend: `ballerino_id` non veniva mappato (snake_case vs camelCase)
+- [x] Fix formato data: `yyyy-MM-dd` invece di timestamp ISO
+- [ ] Vincolo: una sola presenza per ballerino e data
+
 ## Sicurezza e design
 
 - [ ] **Navbar**: un utente non admin non deve vedere il link **Presenze**

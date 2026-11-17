@@ -1,5 +1,6 @@
 package io.bard.presenza_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -35,6 +36,7 @@ public class PresenzaDto {
      * Data della presenza. Obbligatoria.
      */
     @NotNull(message = "la data della presenza e obbligatoria")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @Schema(description = "Date of attendance", example = "2026-09-07", format = "date", requiredMode = Schema.RequiredMode.REQUIRED)
     private Date date;
 
