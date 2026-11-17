@@ -91,6 +91,11 @@ Legenda: `[ ]` da fare · `[~]` in corso · `[x]` fatto · `[!]` bloccato
 - [ ] `dataNascita` nel `RegisterRequest` (oggi il form non la imposta)
 - [ ] Pagina `/persona/:userId` da popolare (oggi e' vuota)
 
+## Sicurezza e design
+
+- [ ] **Navbar**: un utente non admin non deve vedere il link **Presenze**
+      (riuso di `UserStateService.isAdmin()`, come il bottone "+" in Persona)
+
 ## Note
 
 - Priorita' immediata: **chiudere la Fase 2**, poi la **Fase 7** (classifica in dashboard).
