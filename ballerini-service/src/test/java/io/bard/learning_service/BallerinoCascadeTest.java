@@ -31,7 +31,7 @@ class BallerinoCascadeTest {
         Ballerino b = new Ballerino();
         b.setUserId(UUID.randomUUID());
         b.setEta(20);
-        b.setSezione(Sezione.GRUPPO);
+        b.setSezione(Sezione.Ballo);
         b.setSesso("F");
 
         Presenza p1 = new Presenza();
