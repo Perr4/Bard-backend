@@ -26,7 +26,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS bard.presenza (
     "presenzaId"  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     date          DATE         NOT NULL,
-    ballerino_id  UUID         NOT NULL
+    ballerino_id  UUID         NOT NULL,
+    UNIQUE(ballerino_id, date)
 );
 
 -- indice per la query findAllByBallerinoId

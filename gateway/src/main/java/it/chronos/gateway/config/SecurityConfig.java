@@ -73,13 +73,27 @@ public class SecurityConfig {
                         .pathMatchers("/api/auth/token").permitAll()
                         .pathMatchers("/actuator/health").permitAll()
                         .pathMatchers("/actuator/info").permitAll()
-                        .anyExchange().authenticated()
+                                        .pathMatchers(HttpMethod.POST, "/api/presenza/**").hasRole("ADMIN")
+                                        .pathMatchers(HttpMethod.PUT, "/api/presenza/**").hasRole("ADMIN")
+                                        .pathMatchers(HttpMethod.DELETE, "/api/presenza/**").hasRole("ADMIN")
+                                                .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .exceptionHandling(ex->ex
                                 .accessDeniedHandler((exchange, ex1)->{
-                                    System.out.println("£sss");
-                                    return Mono.error(ex1);
+                                    ServerHttpResponse response = exchange.getResponse();
+                                    response.setStatusCode(HttpStatus.FORBIDDEN);
+                                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                                    String jsonResponse = String.format(
+                                            "{\"status\": 403, \"error\": \"Forbidden\", \"message\": \"%s\"}",
+                                            ex1 != null ? ex1.getMessage() : "Accesso negato"
+                                    );
+
+                                    byte[] bytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
+                                    DataBuffer buffer = response.bufferFactory().wrap(bytes);
+
+                                    return response.writeWith(Mono.just(buffer));
                                 })
                                 .authenticationEntryPoint((exchange, ex1) ->{
                                     System.out.println("SSSS");

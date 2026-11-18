@@ -101,10 +101,11 @@ Legenda: `[ ]` da fare · `[~]` in corso · `[x]` fatto · `[!]` bloccato
 - [x] Checkbox pre-spuntata in base alle presenze gia' registrate
 - [x] Fix backend: `ballerino_id` non veniva mappato (snake_case vs camelCase)
 - [x] Fix formato data: `yyyy-MM-dd` invece di timestamp ISO
-- [ ] Vincolo: una sola presenza per ballerino e data
+- [x] Vincolo: una sola presenza per ballerino e data
 
 ## Sicurezza e design
 
+- [x] **Presenze**: `POST`/`PUT`/`DELETE` riservati al ruolo ADMIN (controllo al gateway)
 - [ ] **Navbar**: un utente non admin non deve vedere il link **Presenze**
       (riuso di `UserStateService.isAdmin()`, come il bottone "+" in Persona)
 
