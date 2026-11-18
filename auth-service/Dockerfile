@@ -26,7 +26,10 @@ COPY auth-service/src auth-service/src
 # Compila il modulo e i suoi dipendenti (bard-common), senza test
 RUN mvn -B -pl auth-service -am clean package -DskipTests
 
-# ---- Stage 2: runtime ----
+# ---- Stage 2: agente OpenTelemetry ----
+FROM otel/autoinstrumentation-java:latest AS otel-agent
+
+# ---- Stage 3: runtime ----
 FROM eclipse-temurin:21-jre-alpine
 
 # Utente non privilegiato
@@ -34,6 +37,7 @@ RUN addgroup -S bard && adduser -S bard -G bard
 
 WORKDIR /app
 
+COPY --from=otel-agent /javaagent.jar /app/opentelemetry-javaagent.jar
 COPY --from=build /workspace/auth-service/target/*.jar /app/application.jar
 
 RUN chown -R bard:bard /app
@@ -41,4 +45,4 @@ USER bard
 
 EXPOSE 7999
 
-ENTRYPOINT ["java", "-jar", "/app/application.jar"]
+ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "/app/application.jar"]

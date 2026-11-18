@@ -22,13 +22,17 @@ COPY eureka-service/src eureka-service/src
 
 RUN mvn -B -pl eureka-service -am clean package -DskipTests
 
-# ---- Stage 2: runtime ----
+# ---- Stage 2: agente OpenTelemetry ----
+FROM otel/autoinstrumentation-java:latest AS otel-agent
+
+# ---- Stage 3: runtime ----
 FROM eclipse-temurin:21-jre-alpine
 
 RUN addgroup -S bard && adduser -S bard -G bard
 
 WORKDIR /app
 
+COPY --from=otel-agent /javaagent.jar /app/opentelemetry-javaagent.jar
 COPY --from=build /workspace/eureka-service/target/*.jar /app/application.jar
 
 RUN chown -R bard:bard /app
@@ -36,4 +40,4 @@ USER bard
 
 EXPOSE 8761
 
-ENTRYPOINT ["java", "-jar", "/app/application.jar"]
+ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "/app/application.jar"]

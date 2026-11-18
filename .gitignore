@@ -26,6 +26,11 @@ Thumbs.db
 strumenti/
 graphify-out/
 
+### Documentazione interna e SQL (dati sensibili: non pubblicare)
+docs/
+docs.ai/
+sql/
+
 ### Segreti (non committare mai)
 .gitea-token
 .env

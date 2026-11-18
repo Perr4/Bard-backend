@@ -37,7 +37,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private static final String DEFAULT_ROLE = "STUDENT";
+    private static final String DEFAULT_ROLE = "BALLERINO";
 
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;

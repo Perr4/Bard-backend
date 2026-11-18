@@ -92,6 +92,14 @@ services:
       dockerfile: eureka-service/Dockerfile
     environment:
       EUREKA_URL: http://eureka-service:8761/eureka/
+      # OpenTelemetry: metriche, tracce e log via OTLP.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_SERVICE_NAME: eureka-service
+      OTEL_RESOURCE_ATTRIBUTES: service.name=eureka-service,environment=development
     networks:
       - BARD
     healthcheck:
@@ -115,6 +123,14 @@ services:
       DB_PASSWORD: "0000"
       EUREKA_URL: http://eureka-service:8761/eureka/
       CHRONOS_JWT_SECRET: ${CHRONOS_JWT_SECRET:-chronos-super-secret-key-for-development-only-please-change-2026-minimum-512-bit-secret-key}
+      # OpenTelemetry: metriche, tracce e log via OTLP.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_SERVICE_NAME: auth-service
+      OTEL_RESOURCE_ATTRIBUTES: service.name=auth-service,environment=development
     networks:
       - BARD
     healthcheck:
@@ -143,6 +159,14 @@ services:
       DB_PASSWORD: "0000"
       EUREKA_URL: http://eureka-service:8761/eureka/
       AUTH_SERVICE_URL: http://auth-service:7999
+      # OpenTelemetry: metriche, tracce e log via OTLP.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_SERVICE_NAME: ballerini-service
+      OTEL_RESOURCE_ATTRIBUTES: service.name=ballerini-service,environment=development
     networks:
       - BARD
     healthcheck:
@@ -210,6 +234,14 @@ services:
       # c'e' l'IP della macchina: il front-end aperto da un altro PC sulla LAN
       # (http://192.168.1.22:4200) sarebbe bloccato altrimenti.
       CHRONOS_FRONTEND_ORIGIN: ${CHRONOS_FRONTEND_ORIGIN:-http://localhost:4200,http://127.0.0.1:4200,http://192.168.1.22:4200}
+      # OpenTelemetry: metriche, tracce e log via OTLP.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_SERVICE_NAME: gateway
+      OTEL_RESOURCE_ATTRIBUTES: service.name=gateway,environment=development
     networks:
       - BARD
     healthcheck:
