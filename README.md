@@ -1,143 +1,99 @@
-# BARD Backend
+# BARD — Backend
 
 Backend della piattaforma **BARD** (CHRONOS): autenticazione, anagrafica ballerini e
-gestione delle presenze, esposti da un API Gateway e orchestrati da Eureka.
+gestione delle presenze, orchestrato da un API Gateway e un service registry.
 
-È una **mono-repo Maven multi-module** (`io.bard:bard-parent`): tutti i servizi
-condividono lo stesso stack — **Java 21**, **Spring Boot 4.1.1**, **PostgreSQL**.
+**Mono-repo Maven multi-module** — **Java 21** · **Spring Boot 4.1.1** · **PostgreSQL**.
 
 ---
 
 ## Indice
 
 - [Architettura](#architettura)
-- [Flusso delle informazioni](#flusso-delle-informazioni)
-- [I moduli](#i-moduli)
+- [Moduli](#moduli)
+- [Rotte ed endpoint](#rotte-ed-endpoint)
 - [Tecnologie](#tecnologie)
-- [Uso](#uso)
-- [Avvio](#avvio)
+- [Requisiti](#requisiti)
+- [Avvio rapido (Docker Compose)](#avvio-rapido-docker-compose)
+- [Avvio manuale (Maven)](#avvio-manuale-maven)
+- [Variabili d'ambiente](#variabili-dambiente)
+- [Test](#test)
+- [Osservabilità](#osservabilità)
+- [Sicurezza](#sicurezza)
+- [Struttura del repository](#struttura-del-repository)
 
 ---
 
 ## Architettura
 
 ```
-                          ┌─────────────────┐
-                          │   bard-front    │  Angular 21 (4200)
-                          └────────┬────────┘
-                                   │ HTTP / JSON
-                                   ▼
-                          ┌─────────────────┐
-                          │   api-gateway   │  Spring Cloud Gateway · WebFlux (8080)
-                          │  ─────────────  │
-                          │ • valida JWT    │
-                          │ • routing lb:// │◄──────────────┐
-                          │ • CORS          │               │ service discovery
-                          └────────┬────────┘               │
-                    ┌──────────────┼──────────────┐         │
-                    ▼              ▼              ▼         │
-            ┌──────────────┐ ┌──────────────┐ ┌───────────────┐
-            │ auth-service │ │ ballerini-svc│ │ presenza-svc  │
-            │   (7999)     │ │   (8081)     │ │    (8082)     │
-            └──────┬───────┘ └──────┬───────┘ └───────┬───────┘
-                   │                │                 │
-                   │  anagrafica    │                 │
-                   │◄───────────────┘                 │
-                   │  HTTP interno                    │
-                   ▼                                  ▼
-            ┌──────────────────────────────────────────────┐
-            │              PostgreSQL · schema `bard`       │
-            │  auth_users · auth_roles · auth_user_roles    │
-            │  ballerini · presenza                         │
-            └──────────────────────────────────────────────┘
-                                   ▲
-                                   │ registrazione
-                          ┌────────┴────────┐
-                          │ eureka-service  │  Netflix Eureka (8761)
-                          └─────────────────┘
+                     ┌─────────────────┐
+                     │   bard-front    │  Angular 21 (:4200)
+                     └────────┬────────┘
+                              │ HTTP / JSON
+                              ▼
+                     ┌─────────────────┐
+                     │   api-gateway   │  Spring Cloud Gateway · WebFlux (:8080)
+                     │  ─────────────  │
+                     │ • valida JWT    │
+                     │ • routing lb:// │◄──────────────┐ service discovery
+                     │ • CORS          │               │
+                     └────────┬────────┘               │
+               ┌──────────────┼──────────────┐         │
+               ▼              ▼              ▼         │
+        ┌────────────┐ ┌────────────┐ ┌────────────┐   │
+        │   auth     │ │ ballerini  │ │  presenza  │   │
+        │  (:7999)   │ │  (:8081)   │ │  (:8082)   │   │
+        └─────┬──────┘ └─────┬──────┘ └─────┬──────┘   │
+              │              │              │          │
+              │  anagrafica  │              │          │
+              │◄─────────────┘              │          │
+              ▼                              ▼          │
+        ┌──────────────────────────────────────────┐   │
+        │        PostgreSQL · schema `bard`         │   │
+        │  auth_users · auth_roles · ballerini · presenza │
+        └──────────────────────────────────────────┘   │
+                              ▲                        │
+                              │ registrazione         │
+                     ┌────────┴────────┐               │
+                     │ eureka-service  │  Netflix Eureka (:8761)
+                     └─────────────────┘               │
+                                                       │
+   tutti i servizi ──OTLP──► otel-collector ──┬────────┘
+                                             ▼
+                     ┌──────────────────────────────────────────┐
+                     │ Prometheus (:9090) · Tempo (:3200)        │
+                     │ Loki (:3100) · Grafana (:3001)            │
+                     └──────────────────────────────────────────┘
 ```
 
 ### Come funziona
 
-1. **Ingresso unico** — il client parla solo con `api-gateway` (8080). Nessun servizio
-   è esposto direttamente all'esterno.
-2. **Autenticazione** — il gateway intercetta la richiesta, estrae il `Bearer` token e
-   lo verifica con la stessa chiave HMAC usata da `auth-service` (`CHRONOS_JWT_SECRET`).
-   Login e registrazione sono gli unici endpoint pubblici.
-3. **Service discovery** — prima di instradare, il gateway chiede a `eureka-service`
-   l'indirizzo dell'istanza attiva e instrada con `lb://<nome-servizio>`.
-4. **Elaborazione** — il microservizio esegue la logica e persiste su PostgreSQL.
-5. **Composizione** — `ballerini-service` non ha i dati anagrafici: quando compone un
-   ballerino chiama internamente `auth-service` (`/api/auth/internal/users/{id}`).
+1. **Ingresso unico** — il client parla solo con `api-gateway` (8080).
+2. **Autenticazione** — il gateway verifica il `Bearer` token con la stessa chiave HMAC
+   usata da `auth-service` (`CHRONOS_JWT_SECRET`). Login e registrazione sono pubblici.
+3. **Service discovery** — il gateway chiede a `eureka-service` l'istanza attiva e
+   instrada con `lb://<nome-servizio>`.
+4. **Persistenza** — i microservizi scrivono su PostgreSQL (schema `bard`).
+5. **Composizione** — `ballerini-service` completa il profilo chiamando internamente
+   `auth-service` (`/api/auth/internal/users/{id}`).
 
 ---
 
-## Flusso delle informazioni
-
-### Sequenza di una richiesta autenticata
-
-```mermaid
-sequenceDiagram
-    participant C as Client (Angular)
-    participant G as api-gateway :8080
-    participant E as eureka-service :8761
-    participant S as microservizio
-    participant D as PostgreSQL
-
-    C->>G: HTTP + Bearer JWT
-    G->>G: estrae e verifica il JWT (HMAC)
-    alt token assente o scaduto
-        G-->>C: 401 Unauthorized
-    end
-    G->>E: ricerca istanza di <servizio>
-    E-->>G: indirizzo dell'istanza
-    G->>S: inoltra la richiesta
-    S->>D: query / scrittura
-    D-->>S: risultato
-    S-->>G: risposta JSON
-    G-->>C: risposta JSON
-```
-
-### Composizione del ballerino (dato incrociato)
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant G as api-gateway
-    participant B as ballerini-service :8081
-    participant A as auth-service :7999
-    participant D as PostgreSQL
-
-    C->>G: GET /api/ballerino
-    G->>B: inoltra (JWT valido)
-    B->>D: SELECT da bard.ballerini
-    D-->>B: righe ballerini
-    loop per ogni ballerino
-        B->>A: GET /api/auth/internal/users/{id}
-        A->>D: SELECT da bard.auth_users
-        D-->>A: anagrafica
-        A-->>B: nome, cognome, dataNascita
-    end
-    B-->>G: lista di BallerinoDto completa
-    G-->>C: JSON
-```
-
-> **Nota**: il `loop` evidenzia il limite attuale: per *N* ballerini vengono fatte
-> *N* chiamate HTTP a `auth-service`. È il punto su cui intervenire per il futuro
-> (vedi `docs/piani/2026-11-06_235000-dto-compositi-n-plus-1.md`).
-
----
-
-## I moduli
+## Moduli
 
 | Modulo | Ruolo | Porta | Responsabilità |
 |---|---|---|---|
-| `api-gateway` | Ingresso | 8080 | Routing, validazione JWT, CORS |
+| `gateway` | Ingresso | 8080 | Routing, validazione JWT, CORS |
 | `eureka-service` | Registro | 8761 | Service discovery (`lb://`) |
 | `auth-service` | Identità | 7999 | Registrazione, login, JWT, ruoli, anagrafica |
 | `ballerini-service` | Profilo | 8081 | CRUD ballerini + composizione anagrafica |
-| `presenza-service` | Presenze | 8082 | CRUD presenze, osservabilità |
+| `presenza-service` | Presenze | 8082 | CRUD presenze |
 | `bard-common` | Condiviso | — | Entità JPA usate da più servizi |
+
+---
+
+## Rotte ed endpoint
 
 ### Rotte esposte dal gateway
 
@@ -147,20 +103,23 @@ sequenceDiagram
 | `/api/ballerino/**` | `lb://ballerini-service` |
 | `/api/presenza/**` | `lb://presenza-service` |
 
-### Endpoint dei microservizi
+### Endpoint
 
 | Servizio | Metodo | Path | Descrizione |
 |---|---|---|---|
 | auth | POST | `/api/auth/register` | Registrazione (pubblico) |
 | auth | POST | `/api/auth/login` | Login → JWT (pubblico) |
+| auth | POST | `/api/auth/token` | Introspezione token (pubblico) |
 | auth | GET | `/api/auth/me` | Profilo dell'utente corrente |
 | auth | GET | `/api/auth/internal/users/{id}` | Anagrafica (solo rete interna) |
 | ballerini | POST | `/api/ballerino` | Crea ballerino |
 | ballerini | GET | `/api/ballerino` | Lista ballerini |
+| ballerini | GET | `/api/ballerino/{id}` | Dettaglio ballerino |
 | ballerini | PUT | `/api/ballerino` | Aggiorna ballerino |
 | ballerini | DELETE | `/api/ballerino/{id}` | Elimina ballerino |
 | presenza | POST | `/api/presenza` | Registra presenza |
 | presenza | PUT | `/api/presenza` | Aggiorna presenza |
+| presenza | GET | `/api/presenza` | Tutte le presenze |
 | presenza | GET | `/api/presenza/{id}` | Presenze di un ballerino |
 | presenza | DELETE | `/api/presenza/{id}` | Elimina presenza |
 
@@ -170,50 +129,77 @@ sequenceDiagram
 
 | Area | Tecnologia | Dove |
 |---|---|---|
-| Linguaggio | **Java 21** | tutti i servizi |
-| Framework | **Spring Boot 4.1.1** | tutti i servizi |
-| Cloud | **Spring Cloud 2025.1.3** | gateway, Eureka |
-| Web reattivo | **Spring WebFlux** | `api-gateway` |
-| Web MVC | **Spring WebMVC** | auth, ballerini, presenza |
-| Service discovery | **Netflix Eureka** | `eureka-service` |
+| Linguaggio | **Java 21** | tutti |
+| Framework | **Spring Boot 4.1.1** | tutti |
+| Cloud | **Spring Cloud** (Eureka, Gateway) | gateway, eureka, client |
+| Web | **Spring WebFlux** / **WebMVC** | gateway / auth, ballerini, presenza |
+| Service discovery | **Netflix Eureka** | eureka-service |
 | Sicurezza | **Spring Security + JWT** (jjwt) | gateway, auth |
 | Persistenza | **Spring Data JPA + Hibernate** | auth, ballerini, presenza |
-| Database | **PostgreSQL** (schema `bard`) | tutti i servizi dati |
-| Validazione | **Bean Validation** (Hibernate Validator) | DTO in ingresso |
+| Database | **PostgreSQL** (schema `bard`) | servizi dati |
+| Validazione | **Bean Validation** | DTO in ingresso |
 | Mapping | **ModelMapper**, **Lombok** | ballerini, entità |
-| API docs | **springdoc-openapi** (Swagger UI) | presenza |
-| Osservabilità | **OpenTelemetry** (OTLP → `:4318`) | presenza |
-| Messagistica | **Apache Kafka** (configurato, non attivo) | auth |
+| API docs | **springdoc-openapi** (Swagger UI) | servizi |
+| Osservabilità | **OpenTelemetry** (OTLP) + Collector | tutti |
 | Build | **Maven** multi-module | mono-repo |
 
 ---
 
-## Uso
-
-### Prerequisiti
+## Requisiti
 
 - **Java 21** (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64`)
-- **PostgreSQL** raggiungibile, con lo schema `bard` creato da `sql/schema.sql`
 - **Maven** 3.9+
+- **Docker** + **Docker Compose** (per l'avvio completo)
+- **PostgreSQL** raggiungibile, con lo schema `bard`
 
-### Avvio dell'infrastruttura
+> ⚠️ **Script SQL**: `docker-compose.yml` monta `sql/schema.sql` e
+> `sql/init/00-create-schema.sql`. Questa cartella **non è inclusa nel repository**
+> (dati sensibili). Chi clona il repo deve ricreare gli script prima di avviare.
+
+---
+
+## Avvio rapido (Docker Compose)
 
 ```bash
-# 1. crea lo schema (una tantum)
-psql -h <host> -U <user> -d postgres -c "CREATE SCHEMA bard;"
-psql -h <host> -U <user> -d postgres -f sql/schema.sql
+cd Bard-backend
+docker compose up --build
 ```
 
-### Avvio dei servizi
+Ordine di avvio garantito dagli healthcheck:
+`postgres → eureka-service → auth-service → ballerini/presenza-service → gateway`.
+
+Porte esposte sull'host:
+
+| Servizio | Porta |
+|---|---|
+| api-gateway | 8080 |
+| pg-view | 8083 |
+| OTLP (ingresso) | 4317 / 4318 |
+| Prometheus | 9090 |
+| Loki | 3100 |
+| Tempo | 3200 |
+| Grafana | 3001 |
+
+Comandi:
+
+```bash
+docker compose down        # ferma (conserva i volumi)
+docker compose down -v     # ferma e cancella i volumi
+docker compose ps          # stato dei servizi
+```
+
+---
+
+## Avvio manuale (Maven)
 
 ```bash
 cd Bard-backend
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
-# 1. il registry deve partire per primo
+# 1. il registry parte per primo
 mvn spring-boot:run -pl eureka-service
 
-# 2. i servizi applicativi (in qualsiasi ordine, in terminali separati)
+# 2. i servizi applicativi (terminali separati)
 mvn spring-boot:run -pl auth-service
 mvn spring-boot:run -pl ballerini-service
 mvn spring-boot:run -pl presenza-service
@@ -222,48 +208,91 @@ mvn spring-boot:run -pl presenza-service
 mvn spring-boot:run -pl gateway
 ```
 
-### Variabili d'ambiente
+---
 
-Tutte hanno un valore di default in `application.yml` / `application.yaml`:
+## Variabili d'ambiente
 
-| Variabile | Default | Usata da |
-|---|---|---|
-| `DB_URL` | `jdbc:postgresql://192.168.1.22/postgres` | auth, ballerini, presenza |
-| `DB_USERNAME` | `bard` | auth, ballerini, presenza |
-| `DB_PASSWORD` | `0000` | auth, ballerini, presenza |
-| `EUREKA_URL` | `http://localhost:8761/eureka/` | tutti |
-| `CHRONOS_JWT_SECRET` | segreto di sviluppo | auth, gateway |
-| `CHRONOS_JWT_EXPIRATION_MINUTES` | `120` | auth |
-| `CHRONOS_FRONTEND_ORIGIN` | `http://localhost:4200` | gateway (CORS) |
-| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | auth |
+Elenco completo nel file **`.env`** (nomi delle variabili, senza valori).
+
+| Variabile | Usata da |
+|---|---|
+| `DB_URL` | auth, ballerini, presenza |
+| `DB_USERNAME` | auth, ballerini, presenza |
+| `DB_PASSWORD` | auth, ballerini, presenza |
+| `EUREKA_URL` | tutti i servizi |
+| `AUTH_SERVICE_URL` | ballerini-service |
+| `CHRONOS_JWT_SECRET` | auth-service, gateway |
+| `CHRONOS_JWT_EXPIRATION_MINUTES` | auth-service |
+| `CHRONOS_FRONTEND_ORIGIN` | gateway (CORS) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | tutti i servizi |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | tutti i servizi |
+| `OTEL_METRICS_EXPORTER` | tutti i servizi |
+| `OTEL_TRACES_EXPORTER` | tutti i servizi |
+| `OTEL_LOGS_EXPORTER` | tutti i servizi |
+| `OTEL_SERVICE_NAME` | tutti i servizi |
+| `OTEL_RESOURCE_ATTRIBUTES` | tutti i servizi |
+| `LOKI_URL` | presenza-service |
+| `PGVIEW_USERNAME` / `PGVIEW_PASSWORD` / `PGVIEW_SESSION_SECRET` | pg-view |
+| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | Grafana |
 
 > La stessa `CHRONOS_JWT_SECRET` **deve** essere condivisa tra `auth-service` (che firma)
 > e `api-gateway` (che verifica): se differisce, ogni token viene rifiutato con 401.
 
-### Chiamate di esempio
+---
+
+## Test
 
 ```bash
-# registrazione
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"a@b.it","firstName":"A","lastName":"B","password":"segretissimo"}'
-
-# login → restituisce il token
-TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"a@b.it","password":"segretissimo"}' | jq -r .token)
-
-# chiamata autenticata
-curl http://localhost:8080/api/ballerino -H "Authorization: Bearer $TOKEN"
+cd Bard-backend
+mvn -B test                 # tutti i moduli
+mvn -B test -pl auth-service
 ```
+
+Ogni endpoint nuovo o modificato va verificato con **tre chiamate**:
+**senza token → 401**, **token falso → 401**, **token valido → 200**.
 
 ---
 
-## Avvio
+## Osservabilità
 
-Il gateway risponde su `http://localhost:8080`; il frontend Angular è configurato per
-chiamare proprio quell'indirizzo (`/api/...`). Eureka è consultabile su
-`http://localhost:8761` e mostra i servizi registrati.
+Tutti i microservizi includono l'**agente OpenTelemetry Java** e inviano metriche,
+tracce e log via OTLP al collector, che li smista:
 
-La documentazione OpenAPI di `presenza-service` è disponibile su
-`http://localhost:8082/swagger-ui.html`.
+| Servizio | Ruolo | Porta |
+|---|---|---|
+| `otel-collector` | riceve OTLP, espone metriche Prometheus | 4317/4318 → 8889 |
+| `prometheus` | metriche | 9090 |
+| `tempo` | tracce | 3200 |
+| `loki` | log | 3100 |
+| `grafana` | dashboard | 3001 |
+
+La dashboard **BARD — Overview** è provisionata e mostra, per microservizio:
+richieste HTTP, errori 5xx, heap e CPU JVM, oltre a log e telemetria globale.
+
+---
+
+## Sicurezza
+
+- **JWT HMAC (HS512)**, secreto condiviso `CHRONOS_JWT_SECRET`.
+- **Ruoli**: `ADMIN`, `BALLERINO` (RBAC).
+- Protezione al gateway; i microservizi sono aperti solo sulla rete interna.
+- I valori di default in `docker-compose.yml` sono **solo per sviluppo**:
+  in produzione cambiare `CHRONOS_JWT_SECRET`, `DB_PASSWORD`, `PGVIEW_PASSWORD`
+  e le credenziali di Grafana.
+
+---
+
+## Struttura del repository
+
+```
+Bard-backend/
+├── bard-common/        # entità JPA condivise
+├── auth-service/       # identità, JWT, ruoli
+├── ballerini-service/  # profilo ballerini
+├── presenza-service/   # presenze
+├── gateway/            # API gateway (WebFlux)
+├── eureka-service/     # service registry
+├── docker-compose.yml  # ambiente completo
+├── sql/                # NON incluso nel repo (dati sensibili)
+└── strumenti/          # NON incluso (config locale)
+```
