@@ -3,21 +3,27 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
 
-    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-        <http>
-            <!-- Dentro la rete BARD Loki si chiama "loki" (vedi docker-compose.yml).
-                 Sovrascrivibile con LOKI_URL. -->
-            <url>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</url>
-        </http>
-        <format>
-            <label>
-                <pattern>app=presenza-service,host=${HOSTNAME},level=%level</pattern>
-            </label>
-            <message>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-            </message>
-        </format>
-    </appender>
+    <springProfile name="!test">
+        <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+            <http>
+                <!-- Dentro la rete BARD Loki si chiama "loki" (vedi docker-compose.yml).
+                     Sovrascrivibile con LOKI_URL. -->
+                <url>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</url>
+            </http>
+            <format>
+                <label>
+                    <pattern>app=presenza-service,host=${HOSTNAME},level=%level</pattern>
+                </label>
+                <message>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+                </message>
+            </format>
+        </appender>
+    </springProfile>
+
+    <springProfile name="test">
+        <appender name="LOKI" class="ch.qos.logback.core.helpers.NOPAppender"/>
+    </springProfile>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
