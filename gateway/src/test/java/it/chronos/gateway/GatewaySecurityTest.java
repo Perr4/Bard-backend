@@ -112,4 +112,62 @@ class GatewaySecurityTest {
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.FORBIDDEN);
     }
+
+    // --- uscite ---
+
+    @Test
+    void getUsciteSenzaTokenDa401() {
+        client().get().uri("/api/uscite")
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void getUsciteConTokenFalsoDa401() {
+        client().get().uri("/api/uscite")
+                .header("Authorization", "Bearer token-falso")
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void postUsciteSenzaTokenDa401() {
+        client().post().uri("/api/uscite")
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void postUsciteConTokenFalsoDa401() {
+        client().post().uri("/api/uscite")
+                .header("Authorization", "Bearer token-falso")
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void postUsciteConTokenAdminValidoNon401() {
+        HttpStatusCode status = client().post().uri("/api/uscite")
+                .header("Authorization", "Bearer " + token("ADMIN"))
+                .exchange()
+                .returnResult(Void.class)
+                .getStatus();
+        assertThat(status).isNotEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void postUsciteConTokenNonAdminDa403() {
+        client().post().uri("/api/uscite")
+                .header("Authorization", "Bearer " + token("STUDENT"))
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void deleteUsciteConTokenNonAdminDa403() {
+        client().delete().uri("/api/uscite/00000000-0000-0000-0000-000000000000")
+                .header("Authorization", "Bearer " + token("STUDENT"))
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.FORBIDDEN);
+    }
 }

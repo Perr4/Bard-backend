@@ -218,6 +218,40 @@ services:
         condition: service_healthy
 
   # ------------------------------------------------------------------
+  # 4.1 uscite-service — uscite del gruppo (modulo del cliente).
+  #     Porta 8083 NON esposta: raggiungibile solo dalla rete BARD.
+  # ------------------------------------------------------------------
+  uscite-service:
+    build:
+      context: .
+      dockerfile: uscite-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/postgres
+      DB_USERNAME: bard
+      DB_PASSWORD: "0000"
+      EUREKA_URL: http://eureka-service:8761/eureka/
+      # OpenTelemetry: metriche e tracce via OTLP.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_SERVICE_NAME: uscite-service
+      OTEL_RESOURCE_ATTRIBUTES: service.name=uscite-service,environment=development
+    networks:
+      - BARD
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health | grep -q UP || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------
   # 5. API Gateway — UNICA porta esposta sull'host (8080).
   #    Parte per ultimo: instrada solo verso servizi gia' pronti.
   # ------------------------------------------------------------------
@@ -258,6 +292,8 @@ services:
       ballerini-service:
         condition: service_healthy
       presenza-service:
+        condition: service_healthy
+      uscite-service:
         condition: service_healthy
 
   # ==================================================================

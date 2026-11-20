@@ -27,6 +27,7 @@
         <module>auth-service</module>
         <module>ballerini-service</module>
         <module>presenza-service</module>
+        <module>uscite-service</module>
         <module>gateway</module>
         <module>eureka-service</module>
     </modules>

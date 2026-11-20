@@ -24,6 +24,11 @@ spring:
               predicates:
                 - Path=/api/presenza/**
 
+            - id: uscite-service
+              uri: lb://uscite-service
+              predicates:
+                - Path=/api/uscite/**
+
 
           globalcors:
             cors-configurations:

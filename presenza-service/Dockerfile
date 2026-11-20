@@ -14,6 +14,7 @@ COPY bard-common/pom.xml bard-common/pom.xml
 COPY auth-service/pom.xml auth-service/pom.xml
 COPY ballerini-service/pom.xml ballerini-service/pom.xml
 COPY presenza-service/pom.xml presenza-service/pom.xml
+COPY uscite-service/pom.xml uscite-service/pom.xml
 COPY gateway/pom.xml gateway/pom.xml
 COPY eureka-service/pom.xml eureka-service/pom.xml
 

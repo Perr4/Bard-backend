@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: uscite-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://192.168.1.22/postgres}
+    schema: bard
+    username: ${DB_USERNAME:bard}
+    password: ${DB_PASSWORD:0000}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+  # Metriche via OTLP (vedi commento in presenza-service).
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        step: 30s
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  enabled: true
+  operations-sorter: method
+  tags-sorter: alpha
+
+server:
+  port: 8083

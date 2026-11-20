@@ -76,6 +76,8 @@ public class SecurityConfig {
                                         .pathMatchers(HttpMethod.POST, "/api/presenza/**").hasRole("ADMIN")
                                         .pathMatchers(HttpMethod.PUT, "/api/presenza/**").hasRole("ADMIN")
                                         .pathMatchers(HttpMethod.DELETE, "/api/presenza/**").hasRole("ADMIN")
+                                        .pathMatchers(HttpMethod.POST, "/api/uscite/**").hasRole("ADMIN")
+                                        .pathMatchers(HttpMethod.DELETE, "/api/uscite/**").hasRole("ADMIN")
                                                 .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
